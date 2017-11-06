@@ -22,6 +22,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 
 import com.google.android.gms.location.places.GeoDataClient;
 import com.google.android.gms.location.places.Places;
@@ -42,6 +43,14 @@ import java.util.List;
 ///////////////////////
 import android.widget.Toast;
 import android.content.Context;
+import android.widget.Button; //for button code
+import android.widget.CompoundButton; //for button code
+import android.widget.*; //for button code
+import android.view.*; //for button code
+import android.graphics.*;
+import android.graphics.drawable.LevelListDrawable;
+import android.graphics.drawable.BitmapDrawable;
+
 
 /////////////////
 
@@ -92,30 +101,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 */
     /////////////////////////////////////////////////////
     final private int REQUEST_CODE_ASK_PERMISSIONS = 123; //REQUEST CODE USED IN THE PERMISSION REQUEST.  STILL NOT SURE IF THIS NUMBER MATTERS. "123" IS A RANDOM NUMBER.
-
+    //int button1_toggle = 0;
 
 
     @Override
-    public void onMapReady(GoogleMap googleMap) { //THE MAP IS NOW RUNNING
+    public void onMapReady(final GoogleMap googleMap) { //THE MAP IS NOW RUNNING
 
         /*THIS IS TO GRAB THE PROPER MAP STYLE JSON FILE. SEE THE APP/RES/RAW FOLDER FOR THE JSON FILENAME OPTIONS*/
-
-        try {
-            // Customise the styling of the base map using a JSON object defined
-            // in a raw resource file.
-            boolean success = googleMap.setMapStyle(
-                    MapStyleOptions.loadRawResourceStyle(
-                            this, R.raw.standard)); //THIS IS THE STANDARD OPTION. FUTURE UPDATES WILL ALLOW FOR DYNAMICALLY CHANGING THE MAP STYLE.
-                            // THIS WOULD ALLOW SOMETHING LIKE CLICKING A BUTTON TO CHANGE FROM STANDARD OVERVIEW TO A NIGHT MODE.
-                            //FOR ARTISTIC PURPOSES ONLY
-                            //I WOULD ALSO LIKE TO ADD IN A WAY TO DISPLAY THE MAP IN SATELLITE MODE
-
-            if (!success) {
-                Log.e(TAG, "Style parsing failed.");
+        ToggleButton toggle = (ToggleButton) findViewById(R.id.button1);
+        toggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    // The toggle is enabled
+                    Context context = getApplicationContext(); //TOGGLES THE MAP THEME TO NIGHTMODE
+                    boolean success = googleMap.setMapStyle(
+                            MapStyleOptions.loadRawResourceStyle(
+                                    context, R.raw.night_mode));
+                } else {
+                    // The toggle is disabled
+                    Context context = getApplicationContext(); //TOGGLES THE MAP THEME TO STANDARD MODE
+                    boolean success = googleMap.setMapStyle(
+                            MapStyleOptions.loadRawResourceStyle(
+                                    context, R.raw.standard));
+                }
             }
-        } catch (Resources.NotFoundException e) {
-            Log.e(TAG, "Can't find style. Error: ", e);
-        }
+        });
         //INITIALIZATION
         int permissionCheck = ContextCompat.checkSelfPermission(MapsActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION);
 
@@ -146,7 +156,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
                         REQUEST_CODE_ASK_PERMISSIONS);
 
-                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // REQUEST_CODE_ASK_PERMISSIONS is an
                 // app-defined int constant. The callback method gets the
                 // result of the request.
             }
@@ -169,14 +179,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         map_settings.setZoomControlsEnabled(true);
         map_settings.setCompassEnabled(true);
 
+        /*MARKER INITIALIZATION*/
 
-        /*START OF LOCATION TRACKING CODE*/
-        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        Context context = getApplicationContext();
+        Bitmap temp = BitmapFactory.decodeResource(context.getResources(),//TURN THE DRAWABLE ICON INTO A BITMAP
+                R.drawable.user_location);
+        Bitmap custom_marker = Bitmap.createScaledBitmap(temp,80, 80, true); //RESCALE BITMAP ICON TO PROPER SIZE
 
-        MarkerOptions a = new MarkerOptions().position(latLng); //CREATE A MARKER FOR THE USER'S LOCATION
+
+        MarkerOptions a = new MarkerOptions()
+                            .position(latLng) //CREATE A MARKER FOR THE USER'S LOCATION
+                            .icon(BitmapDescriptorFactory.fromBitmap(custom_marker))
+                            .alpha(0.0f); //weird fix for marker issues. When the app loads the marker is placed at 0,0
+                                        // until the device finds the user location. This code makes the marker transparent
+                                        // until later when the user location is found.
         final Marker user_location = mMap.addMarker(a);
 
+        /*START OF LOCATION TRACKING CODE*/
+
         //check whether the network provider is enabled
+        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){ //USING THE NETWORK PROVIDER FOR LOCATION TRACKING
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, new android.location.LocationListener() {
                 @Override
@@ -187,6 +209,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     //create latlng class
                     latLng = new LatLng(latitude, longitude);
                     Geocoder geocoder = new Geocoder(getApplicationContext());
+                    user_location.setAlpha(0.7f);
                     try {
                         List<Address> addressList = geocoder.getFromLocation(latitude, longitude, 1);
                         curr_location = addressList.get(0).getAddressLine(0);
@@ -225,13 +248,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     //create latlng class
                     LatLng latLng = new LatLng(latitude, longitude);
                     Geocoder geocoder = new Geocoder(getApplicationContext());
+                    user_location.setAlpha(1.0f);
                     try {
                         List<Address> addressList = geocoder.getFromLocation(latitude, longitude, 1);
-                        curr_location = addressList.get(0).getAddressLine(0);//+", ";
-                        //curr_location += addressList.get(0).getLocality()+", ";
-                        //curr_location += addressList.get(0).getCountryName();
-                        mMap.addMarker(new MarkerOptions().position(latLng).title(curr_location));
-                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f));
+                        curr_location = addressList.get(0).getAddressLine(0);
+                        user_location.setPosition(latLng); //UPDATE THE MARKER AS THEY MOVE AROUND
+                        user_location.setTitle(curr_location);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }

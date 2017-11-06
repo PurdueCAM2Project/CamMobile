@@ -10,7 +10,10 @@
         android:orientation="horizontal"
         android:weightSum="5">
 
+
     </LinearLayout>
+
+
 <fragment xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:map="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -20,5 +23,19 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context="com.cam2.ryandevlin.worldview.MapsActivity" />
+<ToggleButton
+    android:textOff="@string/off_text"
+    android:textOn="@string/on_text"
+    android:alpha="0.75"
+    android:id="@+id/button1"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="#8b9dc3"
+    android:layout_alignParentTop="true"
+    android:layout_alignParentEnd="true"
+    android:padding="8dp"
+    android:layout_margin="8dp"
+    android:text="@string/cam_name"
+    android:textColor="#ffffff" />
 
 </RelativeLayout>

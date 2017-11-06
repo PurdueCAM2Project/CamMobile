@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">WorldView</string>
     <string name="title_activity_maps">WorldView</string>
+    <string name="cam_name">WorldView</string>
+    <string name="off_text">NightMode</string>
+    <string name="on_text">Standard</string>
 </resources>
