@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
@@ -50,6 +51,8 @@ import android.view.*; //for button code
 import android.graphics.*;
 import android.graphics.drawable.LevelListDrawable;
 import android.graphics.drawable.BitmapDrawable;
+import android.view.animation.*;
+import android.widget.SearchView;
 
 
 /////////////////
@@ -69,6 +72,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     LocationManager locationManager;
     String curr_location = null;
     LatLng latLng = new LatLng(0, 0);
+    //LatLng temp_latLng = new LatLng(0, 0);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) { //CREATING THE MAP
@@ -101,11 +105,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 */
     /////////////////////////////////////////////////////
     final private int REQUEST_CODE_ASK_PERMISSIONS = 123; //REQUEST CODE USED IN THE PERMISSION REQUEST.  STILL NOT SURE IF THIS NUMBER MATTERS. "123" IS A RANDOM NUMBER.
-    //int button1_toggle = 0;
 
 
     @Override
     public void onMapReady(final GoogleMap googleMap) { //THE MAP IS NOW RUNNING
+
+                           // Creates a CameraPosition from the builder
 
         /*THIS IS TO GRAB THE PROPER MAP STYLE JSON FILE. SEE THE APP/RES/RAW FOLDER FOR THE JSON FILENAME OPTIONS*/
         ToggleButton toggle = (ToggleButton) findViewById(R.id.button1);
@@ -126,6 +131,57 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             }
         });
+
+
+
+
+        final Button button = findViewById(R.id.location_zoom);
+        button.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // Code here executes on main thread after user presses button
+                Context context = getApplicationContext();
+                Animation shake = AnimationUtils.loadAnimation(context, R.anim.shake);
+                v.startAnimation(shake);
+                //mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
+                CameraPosition default_Position = new CameraPosition.Builder()
+                        .target(latLng)
+                        .zoom(15)                   // Sets the zoom
+                        .bearing(0)                // Sets the orientation of the camera to east
+                        .tilt(30)                   // Sets the tilt of the camera to 30 degrees
+                        .build();
+                mMap.animateCamera(CameraUpdateFactory.newCameraPosition(default_Position));
+            }
+        });
+/*
+        final Button button1 = findViewById(R.id.search);
+        button.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // Code here executes on main thread after user presses button
+                //Context context = getApplicationContext();
+                String g =
+
+                Geocoder geocoder = new Geocoder(getBaseContext());
+                List<Address> addresses = null;
+
+                try {
+                    // Getting a maximum of 3 Address that matches the input
+                    // text
+                    addresses = geocoder.getFromLocationName(g, 3);
+                    if (addresses != null && !addresses.equals(""))
+                        search(addresses);
+
+                } catch (Exception e) {
+
+                }
+            }
+        });*/
+
+
+
+
+
+
+
         //INITIALIZATION
         int permissionCheck = ContextCompat.checkSelfPermission(MapsActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION);
 
@@ -284,6 +340,34 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onStop() {
         mGoogleApiClient.disconnect();
         super.onStop();
+    }*//*90
+    protected void search(List<Address> addresses) {
+
+        Address address = (Address) addresses.get(0);
+        home_long = address.getLongitude();
+        home_lat = address.getLatitude();
+        latLng = new LatLng(address.getLatitude(), address.getLongitude());
+
+        addressText = String.format(
+                "%s, %s",
+                address.getMaxAddressLineIndex() > 0 ? address
+                        .getAddressLine(0) : "", address.getCountryName());
+
+        markerOptions = new MarkerOptions();
+
+        markerOptions.position(latLng);
+        markerOptions.title(addressText);
+
+        map1.clear();
+        map1.addMarker(markerOptions);
+        map1.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+        map1.animateCamera(CameraUpdateFactory.zoomTo(15));
+        locationTv.setText("Latitude:" + address.getLatitude() + ", Longitude:"
+                + address.getLongitude());
+
+
     }*/
 
 }
+
+

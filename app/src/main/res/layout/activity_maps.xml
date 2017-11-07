@@ -36,6 +36,27 @@
     android:padding="8dp"
     android:layout_margin="8dp"
     android:text="@string/cam_name"
-    android:textColor="#ffffff" />
+    android:textColor="#ffffff"
+    android:soundEffectsEnabled="true"
+    />
+
+<Button
+    android:alpha="0.75"
+    android:id="@+id/location_zoom"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/rounded_button"
+    android:layout_alignParentBottom="true"
+    android:layout_alignParentRight="true"
+    android:textColor="#ffffff"
+    android:drawableTop="@drawable/location_icon"
+    android:soundEffectsEnabled="true"
+    android:translationY="70dp"
+    android:translationX="155dp"
+    android:scaleX="0.15"
+    android:scaleY="0.15"
+
+    />
+
 
 </RelativeLayout>

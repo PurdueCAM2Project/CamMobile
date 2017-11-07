@@ -4,4 +4,6 @@
     <string name="cam_name">WorldView</string>
     <string name="off_text">NightMode</string>
     <string name="on_text">Standard</string>
+    <string name="search_label">search</string>
+    <string name="search_hint">Search Location</string>
 </resources>
