@@ -24,6 +24,11 @@ import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.location.places.*;
+import com.google.android.gms.location.places.ui.PlaceAutocompleteFragment;
+import com.google.android.gms.location.places.ui.PlaceSelectionListener;
+import com.google.android.gms.common.api.Status;
+
 
 import com.google.android.gms.location.places.GeoDataClient;
 import com.google.android.gms.location.places.Places;
@@ -67,11 +72,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     //private GoogleApiClient mGoogleApiClient;
 
     // The entry points to the Places API.
-    //private GeoDataClient mGeoDataClient;
-    //private PlaceDetectionClient mPlaceDetectionClient;
+    private GeoDataClient mGeoDataClient;
+    private PlaceDetectionClient mPlaceDetectionClient;
+
+
     LocationManager locationManager;
     String curr_location = null;
     LatLng latLng = new LatLng(0, 0);
+    LatLng search_latLng = new LatLng(0, 0);
+    String search_name = null;
     //LatLng temp_latLng = new LatLng(0, 0);
 
     @Override
@@ -93,6 +102,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .addApi(LocationServices.API)
                     .build();
         }*/
+        // Construct a GeoDataClient.
+        mGeoDataClient = Places.getGeoDataClient(this, null);
+
+        // Construct a PlaceDetectionClient.
+        mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
 
     }
     /*FUTURE USE FOR BETTER LOCATION FUNCTIONALITY*/
@@ -109,6 +123,100 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onMapReady(final GoogleMap googleMap) { //THE MAP IS NOW RUNNING
+
+        mMap = googleMap; //OBJECT FOR MAP MANIPULATION
+
+
+
+        //INITIALIZATION
+        int permissionCheck = ContextCompat.checkSelfPermission(MapsActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION);
+
+        //ASK THE USER IF WORLDVIEW CAN TRACK THEIR LOCATION
+        if(permissionCheck != PackageManager.PERMISSION_GRANTED){
+            if (ActivityCompat.shouldShowRequestPermissionRationale(MapsActivity.this,
+                    android.Manifest.permission.ACCESS_FINE_LOCATION)) {
+                // Show an explanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+                Context context = getApplicationContext();
+                CharSequence text = "WorldView needs to access your location to enable all features."; //WE NEED TO EXPLAIN WHY WE MUST TRACK THEM
+                int duration = Toast.LENGTH_SHORT;
+
+                Toast toast = Toast.makeText(context, text, duration);
+                toast.show();
+
+                ActivityCompat.requestPermissions(MapsActivity.this,
+                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                        REQUEST_CODE_ASK_PERMISSIONS);
+                return;
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(MapsActivity.this,
+                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                        REQUEST_CODE_ASK_PERMISSIONS);
+
+                // REQUEST_CODE_ASK_PERMISSIONS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+
+        }
+        else{
+            Context context = getApplicationContext();
+            CharSequence text = "Location Services Enabled."; //WE HAVE PERMISSION TO TRACK THEM
+            int duration = Toast.LENGTH_SHORT;
+
+            Toast toast = Toast.makeText(context, text, duration);
+            toast.show();
+        }
+
+
+
+
+
+        MarkerOptions temp_search = new MarkerOptions()
+                .position(search_latLng) //CREATE A MARKER FOR THE USER'S LOCATION
+                .alpha(0.0f); //weird fix for marker issues. When the app loads the marker is placed at 0,0
+        // until the device finds the user location. This code makes the marker transparent
+        // until later when the user location is found.
+        final Marker search_location = mMap.addMarker(temp_search);
+
+        /*ENTRY POINT FOR PLACES API*/
+
+        PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
+                getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
+
+        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(Place place) {
+                // TODO: Get info about the selected place.
+                search_latLng = place.getLatLng();
+                search_name = (String)place.getName();
+                search_location.setTitle(search_name);
+                search_location.setPosition(search_latLng);
+                search_location.setAlpha(0.75f);
+
+                CameraPosition search_Position = new CameraPosition.Builder()
+                        .target(search_latLng)
+                        .zoom(15)                   // Sets the zoom
+                        .bearing(0)                // Sets the orientation of the camera to east
+                        .tilt(30)                   // Sets the tilt of the camera to 30 degrees
+                        .build();
+                mMap.animateCamera(CameraUpdateFactory.newCameraPosition(search_Position));
+                Log.i(TAG, "Place: " + place.getName());
+            }
+
+            @Override
+            public void onError(Status status) {
+                // TODO: Handle the error.
+                Log.i(TAG, "An error occurred: " + status);
+            }
+        });
+
+
 
                            // Creates a CameraPosition from the builder
 
@@ -179,57 +287,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
 
-
-
-
-        //INITIALIZATION
-        int permissionCheck = ContextCompat.checkSelfPermission(MapsActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION);
-
-        //ASK THE USER IF WORLDVIEW CAN TRACK THEIR LOCATION
-        if(permissionCheck != PackageManager.PERMISSION_GRANTED){
-            if (ActivityCompat.shouldShowRequestPermissionRationale(MapsActivity.this,
-                    android.Manifest.permission.ACCESS_FINE_LOCATION)) {
-                // Show an explanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-                Context context = getApplicationContext();
-                CharSequence text = "WorldView needs to access your location to enable all features."; //WE NEED TO EXPLAIN WHY WE MUST TRACK THEM
-                int duration = Toast.LENGTH_SHORT;
-
-                Toast toast = Toast.makeText(context, text, duration);
-                toast.show();
-
-                ActivityCompat.requestPermissions(MapsActivity.this,
-                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
-                        REQUEST_CODE_ASK_PERMISSIONS);
-                return;
-
-            } else {
-
-                // No explanation needed, we can request the permission.
-
-                ActivityCompat.requestPermissions(MapsActivity.this,
-                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
-                        REQUEST_CODE_ASK_PERMISSIONS);
-
-                // REQUEST_CODE_ASK_PERMISSIONS is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
-            }
-
-        }
-        else{
-            Context context = getApplicationContext();
-            CharSequence text = "Location Services Enabled."; //WE HAVE PERMISSION TO TRACK THEM
-            int duration = Toast.LENGTH_SHORT;
-
-            Toast toast = Toast.makeText(context, text, duration);
-            toast.show();
-        }
-
-
-        mMap = googleMap; //OBJECT FOR MAP MANIPULATION
-
         // Initializing proper UI settings
         UiSettings map_settings = mMap.getUiSettings();
         map_settings.setZoomControlsEnabled(true);
@@ -240,7 +297,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Context context = getApplicationContext();
         Bitmap temp = BitmapFactory.decodeResource(context.getResources(),//TURN THE DRAWABLE ICON INTO A BITMAP
                 R.drawable.user_location);
-        Bitmap custom_marker = Bitmap.createScaledBitmap(temp,80, 80, true); //RESCALE BITMAP ICON TO PROPER SIZE
+        Bitmap custom_marker = Bitmap.createScaledBitmap(temp, 80, 80, true); //RESCALE BITMAP ICON TO PROPER SIZE
 
 
         MarkerOptions a = new MarkerOptions()
@@ -257,7 +314,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){ //USING THE NETWORK PROVIDER FOR LOCATION TRACKING
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, new android.location.LocationListener() {
-                @Override
+                //@Override
                 public void onLocationChanged(Location location) {
                     //get coordinates
                     double latitude = location.getLatitude();
@@ -333,6 +390,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
     }
+
+
 
     /*FUTURE USE FOR BETTER LOCATION FUNCTIONALITY*/
     /*

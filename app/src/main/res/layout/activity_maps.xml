@@ -9,8 +9,6 @@
         android:layout_height="match_parent"
         android:orientation="horizontal"
         android:weightSum="5">
-
-
     </LinearLayout>
 
 
@@ -23,40 +21,62 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context="com.cam2.ryandevlin.worldview.MapsActivity" />
-<ToggleButton
-    android:textOff="@string/off_text"
-    android:textOn="@string/on_text"
-    android:alpha="0.75"
-    android:id="@+id/button1"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:background="#8b9dc3"
-    android:layout_alignParentTop="true"
-    android:layout_alignParentEnd="true"
-    android:padding="8dp"
-    android:layout_margin="8dp"
-    android:text="@string/cam_name"
-    android:textColor="#ffffff"
-    android:soundEffectsEnabled="true"
-    />
+    <ToggleButton
+        android:textOff="@string/off_text"
+        android:textOn="@string/on_text"
+        android:alpha="0.75"
+        android:id="@+id/button1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/toggle_round"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:padding="8dp"
+        android:layout_margin="8dp"
+        android:text="@string/cam_name"
+        android:textColor="#ffffff"
+        android:soundEffectsEnabled="true"
+        />
 
-<Button
-    android:alpha="0.75"
-    android:id="@+id/location_zoom"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:background="@drawable/rounded_button"
-    android:layout_alignParentBottom="true"
-    android:layout_alignParentRight="true"
-    android:textColor="#ffffff"
-    android:drawableTop="@drawable/location_icon"
-    android:soundEffectsEnabled="true"
-    android:translationY="70dp"
-    android:translationX="155dp"
-    android:scaleX="0.15"
-    android:scaleY="0.15"
+    <Button
+        android:alpha="0.75"
+        android:id="@+id/location_zoom"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/rounded_button"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:textColor="#ffffff"
+        android:drawableTop="@drawable/location_icon"
+        android:soundEffectsEnabled="true"
+        android:translationY="70dp"
+        android:translationX="155dp"
+        android:scaleX="0.15"
+        android:scaleY="0.15"
 
-    />
+        />
+        <android.support.v7.widget.CardView
+            xmlns:card_view="http://schemas.android.com/apk/res-auto"
+            android:id="@+id/card_view"
+            android:layout_width="380dp"
+            android:layout_height="48dp"
+            card_view:cardCornerRadius="4dp"
+            android:layout_alignParentTop="@+id/button1"
+            android:layout_toStartOf="@+id/button1"
+            android:layout_alignBottom="@+id/button1"
+            android:alpha="0.6">
 
-
+            <fragment
+                android:id="@+id/place_autocomplete_fragment"
+                android:name="com.google.android.gms.location.places.ui.PlaceAutocompleteFragment"
+                android:layout_width="match_parent"
+                android:layout_height="47dp"
+                android:layout_alignStart="@+id/location_zoom"
+                android:layout_alignTop="@+id/button1"
+                android:layout_alignBottom="@+id/button1"
+                android:layout_gravity="center"
+                android:layout_marginTop="-2dp"
+                android:background="#8b9dc3">
+            </fragment>
+        </android.support.v7.widget.CardView>
 </RelativeLayout>
