@@ -13,6 +13,7 @@ import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.GoogleMap;
@@ -20,6 +21,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -69,7 +71,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     GoogleApiClient mGoogleApiClient = null; //new
     private static final String TAG = MapsActivity.class.getSimpleName();
 
-    //private GoogleApiClient mGoogleApiClient;
 
     // The entry points to the Places API.
     private GeoDataClient mGeoDataClient;
@@ -81,7 +82,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     LatLng latLng = new LatLng(0, 0);
     LatLng search_latLng = new LatLng(0, 0);
     String search_name = null;
-    //LatLng temp_latLng = new LatLng(0, 0);
+    LatLngBounds search_zoom = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) { //CREATING THE MAP
@@ -92,16 +93,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        /*FUTURE USE FOR BETTER LOCATION FUNCTIONALITY*/
-        /*
-        // Create an instance of GoogleAPIClient.
-        if (mGoogleApiClient == null) {
-            mGoogleApiClient = new GoogleApiClient.Builder(this)
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .addApi(LocationServices.API)
-                    .build();
-        }*/
         // Construct a GeoDataClient.
         mGeoDataClient = Places.getGeoDataClient(this, null);
 
@@ -109,14 +100,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
 
     }
-    /*FUTURE USE FOR BETTER LOCATION FUNCTIONALITY*/
-    /*
-    @Override
-    protected void onStart() {
-        mGoogleApiClient.connect();
-        super.onStart();
-    }
-*/
     /////////////////////////////////////////////////////
     final private int REQUEST_CODE_ASK_PERMISSIONS = 123; //REQUEST CODE USED IN THE PERMISSION REQUEST.  STILL NOT SURE IF THIS NUMBER MATTERS. "123" IS A RANDOM NUMBER.
 
@@ -128,7 +111,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
 
-        //INITIALIZATION
+        //INITIALIZATION OF PERMISSION CHECK
         int permissionCheck = ContextCompat.checkSelfPermission(MapsActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION);
 
         //ASK THE USER IF WORLDVIEW CAN TRACK THEIR LOCATION
@@ -195,17 +178,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 // TODO: Get info about the selected place.
                 search_latLng = place.getLatLng();
                 search_name = (String)place.getName();
+                search_zoom = place.getViewport();
                 search_location.setTitle(search_name);
                 search_location.setPosition(search_latLng);
                 search_location.setAlpha(0.75f);
 
-                CameraPosition search_Position = new CameraPosition.Builder()
-                        .target(search_latLng)
-                        .zoom(15)                   // Sets the zoom
-                        .bearing(0)                // Sets the orientation of the camera to east
-                        .tilt(30)                   // Sets the tilt of the camera to 30 degrees
-                        .build();
-                mMap.animateCamera(CameraUpdateFactory.newCameraPosition(search_Position));
+                if(search_zoom != null) {
+                    CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(search_zoom, 0);
+                    mMap.animateCamera(cu);
+                    //mMap.animateCamera(CameraUpdateFactory.newCameraPosition(search_Position));
+                }
+                else{
+                    CameraPosition search_Position = new CameraPosition.Builder()
+                            .target(search_latLng)
+                            .zoom(15)                   // Sets the zoom
+                            .bearing(0)                // Sets the orientation of the camera to east
+                            .tilt(30)                   // Sets the tilt of the camera to 30 degrees
+                            .build();
+                    mMap.animateCamera(CameraUpdateFactory.newCameraPosition(search_Position));
+                }
                 Log.i(TAG, "Place: " + place.getName());
             }
 
@@ -260,30 +251,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 mMap.animateCamera(CameraUpdateFactory.newCameraPosition(default_Position));
             }
         });
-/*
-        final Button button1 = findViewById(R.id.search);
-        button.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                // Code here executes on main thread after user presses button
-                //Context context = getApplicationContext();
-                String g =
-
-                Geocoder geocoder = new Geocoder(getBaseContext());
-                List<Address> addresses = null;
-
-                try {
-                    // Getting a maximum of 3 Address that matches the input
-                    // text
-                    addresses = geocoder.getFromLocationName(g, 3);
-                    if (addresses != null && !addresses.equals(""))
-                        search(addresses);
-
-                } catch (Exception e) {
-
-                }
-            }
-        });*/
-
 
 
 
@@ -390,42 +357,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
     }
-
-
-
-    /*FUTURE USE FOR BETTER LOCATION FUNCTIONALITY*/
-    /*
-    @Override
-    protected void onStop() {
-        mGoogleApiClient.disconnect();
-        super.onStop();
-    }*//*90
-    protected void search(List<Address> addresses) {
-
-        Address address = (Address) addresses.get(0);
-        home_long = address.getLongitude();
-        home_lat = address.getLatitude();
-        latLng = new LatLng(address.getLatitude(), address.getLongitude());
-
-        addressText = String.format(
-                "%s, %s",
-                address.getMaxAddressLineIndex() > 0 ? address
-                        .getAddressLine(0) : "", address.getCountryName());
-
-        markerOptions = new MarkerOptions();
-
-        markerOptions.position(latLng);
-        markerOptions.title(addressText);
-
-        map1.clear();
-        map1.addMarker(markerOptions);
-        map1.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-        map1.animateCamera(CameraUpdateFactory.zoomTo(15));
-        locationTv.setText("Latitude:" + address.getLatitude() + ", Longitude:"
-                + address.getLongitude());
-
-
-    }*/
 
 }
 
