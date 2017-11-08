@@ -46,6 +46,7 @@ import com.google.android.gms.location.LocationServices;
 import android.location.Address;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.List;
 
 ///////////////////////
@@ -60,6 +61,13 @@ import android.graphics.drawable.LevelListDrawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.view.animation.*;
 import android.widget.SearchView;
+import android.support.v4.widget.DrawerLayout;
+import android.widget.Adapter;
+import android.view.View;
+import java.util.ArrayList;
+import java.util.Arrays;
+
+
 
 
 /////////////////
@@ -83,6 +91,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     LatLng search_latLng = new LatLng(0, 0);
     String search_name = null;
     LatLngBounds search_zoom = null;
+    int complement0 = 0;
+    int complement1 = 0;
+    int complement2 = 0;
+
+    private ListView mDrawerList;
+    private ArrayList<String> mList;
+    private ListAdapter editList;
+    private ArrayAdapter<String> mAdapter;
+
+    List<Marker> markers = new ArrayList<Marker>();
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) { //CREATING THE MAP
@@ -99,7 +119,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Construct a PlaceDetectionClient.
         mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
 
+        mDrawerList = (ListView)findViewById(R.id.navList);
+        defaultDrawerItems();
+
     }
+    private void defaultDrawerItems() {
+        String[] menuArray = { "Standard", "Drawn", "Hide Markers"};
+        //mList = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, menuArray);
+        mList = new ArrayList<>(Arrays.asList(menuArray));
+        mAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mList);
+        mDrawerList.setAdapter(mAdapter);
+    }
+
     /////////////////////////////////////////////////////
     final private int REQUEST_CODE_ASK_PERMISSIONS = 123; //REQUEST CODE USED IN THE PERMISSION REQUEST.  STILL NOT SURE IF THIS NUMBER MATTERS. "123" IS A RANDOM NUMBER.
 
@@ -108,7 +139,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(final GoogleMap googleMap) { //THE MAP IS NOW RUNNING
 
         mMap = googleMap; //OBJECT FOR MAP MANIPULATION
-
 
 
         //INITIALIZATION OF PERMISSION CHECK
@@ -167,6 +197,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // until later when the user location is found.
         final Marker search_location = mMap.addMarker(temp_search);
 
+        markers.add(search_location);
+
         /*ENTRY POINT FOR PLACES API*/
 
         PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
@@ -182,6 +214,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 search_location.setTitle(search_name);
                 search_location.setPosition(search_latLng);
                 search_location.setAlpha(0.75f);
+                markers.add(search_location);
 
                 if(search_zoom != null) {
                     CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(search_zoom, 0);
@@ -275,13 +308,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                         // until later when the user location is found.
         final Marker user_location = mMap.addMarker(a);
 
+        markers.add(user_location);
+
         /*START OF LOCATION TRACKING CODE*/
 
         //check whether the network provider is enabled
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){ //USING THE NETWORK PROVIDER FOR LOCATION TRACKING
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, new android.location.LocationListener() {
-                //@Override
+                @Override
                 public void onLocationChanged(Location location) {
                     //get coordinates
                     double latitude = location.getLatitude();
@@ -355,6 +390,95 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             });
         }
+
+
+        /* THIS CODE IS FOR THE SIDE MENU */
+
+        mDrawerList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                //Toast.makeText(MapsActivity.this, "Position = " + position, Toast.LENGTH_SHORT).show();
+                if(position == 0){
+                    complement0 = 1 ^ complement0;
+                    if(complement0 == 1){
+                        Context context = getApplicationContext(); //TOGGLES THE MAP THEME TO NIGHTMODE
+                        boolean success = googleMap.setMapStyle(
+                                MapStyleOptions.loadRawResourceStyle(
+                                        context, R.raw.night_mode));
+                        mList.set(position,"NightMode");
+                        mAdapter.notifyDataSetChanged();
+
+                    } else {
+                        // The toggle is disabled
+                        Context context = getApplicationContext(); //TOGGLES THE MAP THEME TO STANDARD MODE
+                        boolean success = googleMap.setMapStyle(
+                                MapStyleOptions.loadRawResourceStyle(
+                                        context, R.raw.standard));
+                        mList.set(position,"Standard");
+                        mAdapter.notifyDataSetChanged();
+                    }
+                }
+                else if(position == 1){
+                    complement1++;
+                    if(complement1 == 1){
+                        mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                        mList.set(position,"Satellite");
+                        mAdapter.notifyDataSetChanged();
+                    }
+                    else if(complement1 == 2){
+                        // The toggle is disabled
+                        mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                        mList.set(position,"Hybrid");
+                        mAdapter.notifyDataSetChanged();
+                    }
+                    else if(complement1 == 3){
+                        // The toggle is disabled
+                        mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+                        mList.set(position,"Terrain");
+                        mAdapter.notifyDataSetChanged();
+                    }
+                    else{
+                        // The toggle is disabled
+                        complement1 = 0;
+                        mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                        mList.set(position,"Drawn");
+                        mAdapter.notifyDataSetChanged();
+                    }
+                }
+                else if(position == 2){
+                    complement0 = 1 ^ complement0;
+                    if(complement0 == 1){ //ADD ALL MARKERS HERE!!!!
+                        int len = markers.size();
+                        len--;
+                        while(len != 0) {
+                            Marker temp = markers.get(len);
+                            temp.setAlpha(0.0f);
+                            len--;
+                        }
+                        mList.set(position,"Reveal Markers");
+                        mAdapter.notifyDataSetChanged();
+                    } else {
+                        // The toggle is disabled
+                        int len = markers.size();
+                        len--;
+                        while(len != 0) {
+                            Marker temp = markers.get(len);
+                            temp.setAlpha(0.75f);
+                            len--;
+                        }
+                        mList.set(position,"Hide Markers");
+                        mAdapter.notifyDataSetChanged();
+                    }
+                }
+                else if(position == 3){
+
+                }
+            }
+        });
+
+
+
+
 
     }
 
