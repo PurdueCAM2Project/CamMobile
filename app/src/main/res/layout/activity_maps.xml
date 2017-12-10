@@ -27,6 +27,29 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         tools:context="com.cam2.ryandevlin.worldview.MapsActivity" />
+    <!--
+        <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+            xmlns:tools="http://schemas.android.com/tools"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
+            tools:context="com.example.ian.basicexample.MainActivity">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:text="Large Text"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:id="@+id/jsonData"
+                android:textColor="#000000" />
+
+        </ScrollView>
+    -->
+
         <ToggleButton
             android:textOff="@string/off_text"
             android:textOn="@string/on_text"

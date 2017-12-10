@@ -2,8 +2,11 @@
     <string name="app_name">WorldView</string>
     <string name="title_activity_maps">WorldView</string>
     <string name="cam_name">WorldView</string>
-    <string name="off_text">NightMode</string>
-    <string name="on_text">Standard</string>
+    <string name="off_text">Get Directions</string>
+    <string name="on_text">Remove Directions</string>
     <string name="search_label">search</string>
     <string name="search_hint">Search Location</string>
+    <string name="pos_delete_marker">Yes</string>
+    <string name="neg_delete_marker">No</string>
+    <string name="dialog_delete_marker">Are you sure you want to delete this marker?</string>
 </resources>
