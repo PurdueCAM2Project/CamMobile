@@ -9,7 +9,7 @@
 
 ## What is this?
 
-WorldView is an Android app to view camera live feeds displayed over google maps.  The app is currently in developement and is constantly adding new features to interact with cameras in new ways.
+WorldView is an Android app to view camera live feeds displayed over google maps.  The app is currently in developement and is constantly being updated with features to interact with cameras in new ways.
 
 ## Built With
 
