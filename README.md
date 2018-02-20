@@ -1,6 +1,13 @@
-# CamMobile
+<h1 align="center">WorldView</h1>
+<h2 align="center">A new way to view the planet.</h2>
 
-An Android app to view camera live feeds displayed over google maps.  The app is currently in developement and is constantly adding new features to interact with cameras in new ways.
+<p align="center">
+    <img src="https://github.com/PurdueCAM2Project/CamMobile/blob/master/WorldView/app/src/main/Cam_icon-web.png" alt="WorldView Camera" width="100"/>
+</p>
+
+## What is this?
+
+WorldView is an Android app to view camera live feeds displayed over google maps.  The app is currently in developement and is constantly adding new features to interact with cameras in new ways.
 
 ## Built With
 
