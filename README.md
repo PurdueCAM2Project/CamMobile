@@ -1,5 +1,7 @@
 <h1 align="center">WorldView</h1>
-<h2 align="center">A new way to view the planet.</h2>
+<p align="center">
+  <b>A new way to view the planet.</b><br>
+</p>
 
 <p align="center">
     <img src="https://github.com/PurdueCAM2Project/CamMobile/blob/master/WorldView/app/src/main/Cam_icon-web.png" alt="WorldView Camera" width="100"/>
