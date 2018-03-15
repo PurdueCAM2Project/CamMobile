@@ -1,16 +1,18 @@
 package com.cam2.ryandevlin.worldview;
 
-import android.app.Activity;
+import android.Manifest;
 import android.content.pm.PackageManager;
-import android.content.res.Resources;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-//import android.support.v4.content.PermissionChecker;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.support.v4.view.GravityCompat;
 import android.util.Log;
 
 import com.google.android.gms.maps.CameraUpdate;
@@ -22,7 +24,6 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -38,34 +39,25 @@ import com.google.android.gms.location.places.PlaceDetectionClient;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
-import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+
 import android.location.Address;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.List;
 
 ///////////////////////
 import android.widget.Toast;
 import android.content.Context;
-import android.widget.Button; //for button code
 import android.widget.CompoundButton; //for button code
 import android.widget.*; //for button code
 import android.view.*; //for button code
 import android.graphics.*;
-import android.graphics.drawable.LevelListDrawable;
-import android.graphics.drawable.BitmapDrawable;
-import android.view.animation.*;
-import android.widget.SearchView;
 import android.support.v4.widget.DrawerLayout;
-import android.widget.Adapter;
-import android.view.View;
 import java.util.ArrayList;
-import java.util.Arrays;
+
 
 /* Directions */
 import com.google.android.gms.maps.model.Polyline;
@@ -79,44 +71,26 @@ import com.google.maps.android.PolyUtil;
 //import com.google.maps.model.LatLng;
 
 import org.joda.time.DateTime;
-
-import java.io.IOException;
-import java.lang.Object;
 import java.util.concurrent.TimeUnit;
 
 import com.android.volley.toolbox.Volley;
-import com.android.volley.toolbox.StringRequest;
 import com.android.volley.Response;
-import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.JsonArrayRequest;
+
 import org.json.JSONObject;
 import org.json.JSONArray;
 import org.json.JSONException;
-import com.android.volley.VolleyLog;
-
-
-import java.net.*;
-import java.io.*;
-
-import android.os.AsyncTask;
 
 import android.graphics.Color;
 import android.app.AlertDialog;
-import android.app.Dialog;
-import android.support.v4.app.DialogFragment;
 import android.content.DialogInterface;
 import android.os.Build;
 
-
-//////////////////
-
-//////////////////
-
-
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener,
+        LocationListener, GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener, NavigationView.OnNavigationItemSelectedListener {
 
     String JsonURL = "https://tirtha.loyolachicagocs.org/cam2/database/api/cameras.json";
     String data = "";
@@ -124,7 +98,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     TextView results;
 
     private GoogleMap mMap;
-    GoogleApiClient mGoogleApiClient = null; //new
+    GoogleApiClient mGoogleApiClient = null; //Google Play services API
+    private UiSettings mUiSettings; //Google map UI settings
+    Location mLastLocation; //Location for GPS tracking
+    Marker mCurrLocationMarker; //Putting the marker down
+    LocationRequest mLocationRequest; //Requesting location.
+    boolean connected; //Checking if the location is enabled or suspended for the directions portion of the code
     private static final String TAG = MapsActivity.class.getSimpleName();
 
 
@@ -146,7 +125,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     //Polyline route;
 
-    private ListView mDrawerList;
     private ArrayList<String> mList;
     private ListAdapter editList;
     private ArrayAdapter<String> mAdapter;
@@ -169,6 +147,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) { //CREATING THE MAP
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            checkLocationPermission();
+        }
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -180,13 +162,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Construct a PlaceDetectionClient.
         mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
 
-        mDrawerList = (ListView) findViewById(R.id.navList);
-        defaultDrawerItems();
 
-        //String sUrl = "www.google.com";
-        //new GetUrlContentTask().execute(sUrl);
         requestQueue = Volley.newRequestQueue(this);
-        //results = (TextView) findViewById(R.id.jsonData);
+
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        //Creating and enabling the Navigation View
+        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
 
         // Creating the JsonObjectRequest class called obreq, passing required parameters:
         //GET is used to fetch data from the server, JsonURL is the URL to be fetched from.
@@ -203,32 +185,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             //int size = camera.length();
                             int i = 0;
                             num_cameras = response.length();
-                            while(i < num_cameras){
+                            while (i < num_cameras) {
                                 JSONObject camera = response.getJSONObject(i);
                                 i++;
-                                // Retrieves first JSON object in outer array
-                                //JSONObject colorObj = response.getJSONObject(0);
-                                // Retrieves "colorArray" from the JSON object
-                                //JSONArray colorArry = response.getJSONArray(0);
-                                // Iterates through the JSON Array getting objects and adding them
-                                //to the list view until there are no more objects in colorArray
 
-                            /*
-                            for (int i = 0; i < colorArry.length(); i++) {
-                                //gets each JSON object within the JSON array
-                                JSONObject jsonObject = colorArry.getJSONObject(i);
-
-                                // Retrieves the string labeled "colorName" and "hexValue",
-                                // and converts them into javascript objects
-                                String color = jsonObject.getString("colorName");
-                                String hex = jsonObject.getString("hexValue");
-
-                                // Adds strings from the current object to the data string
-                                //spacing is included at the end to separate the results from
-                                //one another
-                                data += "Color Number " + (i + 1) + "nColor Name: " + color +
-                                        "nHex Value : " + hex + "nnn";
-                            }*/
                                 String description = camera.getString("description");
                                 String camera_type = camera.getString("camera_type");
                                 int camera_id = camera.getInt("camera_id");
@@ -250,13 +210,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                                 cam_objects.add(i - 1, camera_obj); // add the camera object to the list
                             }
-                            //num_cameras = i;
-
-                            //data = description;
-
-                            // Adds the data string to the TextView "results"
-                            //results.setText(data);
-
                         }
                         // Try and catch are included to handle any errors due to JSON
                         catch (JSONException e) {
@@ -279,73 +232,112 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         requestQueue.add(arrayreq);
 
     }
+    ///////////////////////Google API client that allows various functionality////////////////
+    protected synchronized void buildGoogleApiClient() {
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
+        mGoogleApiClient.connect();
+    }
+    ///////////////////////Requesting permission and actually doing something with the permission///////////////////////
+    public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
 
-    private void defaultDrawerItems() {
-        String[] menuArray = {"Standard", "Drawn", "Hide Markers", "Display Cameras"};
-        mList = new ArrayList<>(Arrays.asList(menuArray));
-        mAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mList);
-        mDrawerList.setAdapter(mAdapter);
+    public boolean checkLocationPermission() {
+        if (ContextCompat.checkSelfPermission(this,
+                android.Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            // Asking user if explanation is needed
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                    android.Manifest.permission.ACCESS_FINE_LOCATION)) {
+
+                //TODO: Show a reason to enable location
+
+                //Prompt the user once explanation has been shown
+                ActivityCompat.requestPermissions(this,
+                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_LOCATION);
+
+
+            } else {
+                // No explanation needed, we can request the permission.
+                ActivityCompat.requestPermissions(this,
+                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_LOCATION);
+            }
+            return false;
+        } else {
+            return true;
+        }
+    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_LOCATION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // Permission was granted.
+                    if (ContextCompat.checkSelfPermission(this,
+                            Manifest.permission.ACCESS_FINE_LOCATION)
+                            == PackageManager.PERMISSION_GRANTED) {
+
+                        if (mGoogleApiClient == null) {
+                            buildGoogleApiClient();
+                        }
+                        mMap.setMyLocationEnabled(true);
+                        mMap.setOnMyLocationClickListener(this); //Enable clicking on the blue dot for your location
+                        mMap.setOnMyLocationButtonClickListener(this); //Enable listener to handle clicks of the My Location button
+                        mUiSettings.setCompassEnabled(true); //Allowing the Google API compass to be used
+                        mUiSettings.setZoomControlsEnabled(true); //Enabling the zoom in and zoom out functionality
+                    }
+
+                } else {
+
+                    // Permission denied, Disable the functionality that depends on this permission.
+                    Toast.makeText(this, "permission denied", Toast.LENGTH_LONG).show();
+                }
+                return;
+            }
+        }
     }
 
-    /////////////////////////////////////////////////////
-    final private int REQUEST_CODE_ASK_PERMISSIONS = 123; //REQUEST CODE USED IN THE PERMISSION REQUEST.  STILL NOT SURE IF THIS NUMBER MATTERS. "123" IS A RANDOM NUMBER.
-
-
+    ///////////////////////Google map creation///////////////////////
     @Override
     public void onMapReady(final GoogleMap googleMap) { //THE MAP IS NOW RUNNING
 
         mMap = googleMap; //OBJECT FOR MAP MANIPULATION
-
-
-        //INITIALIZATION OF PERMISSION CHECK
-        int permissionCheck = ContextCompat.checkSelfPermission(MapsActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION);
-
-        //ASK THE USER IF WORLDVIEW CAN TRACK THEIR LOCATION
-        if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(MapsActivity.this,
-                    android.Manifest.permission.ACCESS_FINE_LOCATION)) {
-                // Show an explanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-                Context context = getApplicationContext();
-                CharSequence text = "WorldView needs to access your location to enable all features."; //WE NEED TO EXPLAIN WHY WE MUST TRACK THEM
-                int duration = Toast.LENGTH_SHORT;
-
-                Toast toast = Toast.makeText(context, text, duration);
-                toast.show();
-
-                ActivityCompat.requestPermissions(MapsActivity.this,
-                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
-                        REQUEST_CODE_ASK_PERMISSIONS);
-                return;
-
-            } else {
-
-                // No explanation needed, we can request the permission.
-
-                ActivityCompat.requestPermissions(MapsActivity.this,
-                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION},
-                        REQUEST_CODE_ASK_PERMISSIONS);
-
-                // REQUEST_CODE_ASK_PERMISSIONS is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
+        mUiSettings = mMap.getUiSettings();
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.ACCESS_FINE_LOCATION)
+                    == PackageManager.PERMISSION_GRANTED) {
+                buildGoogleApiClient(); //Build the Google API
+                mMap.setMyLocationEnabled(true); //Enable the My location button
+                mMap.setOnMyLocationClickListener(this); //Enable clicking on the blue dot for your location
+                mMap.setOnMyLocationButtonClickListener(this); //Enable listener to handle clicks of the My Location button
+                mUiSettings.setCompassEnabled(true); //Allowing the Google API compass to be used
+                mUiSettings.setZoomControlsEnabled(true); //Enabling the zoom in and zoom out functionality
             }
-
-        } else {
-            Context context = getApplicationContext();
-            CharSequence text = "Location Services Enabled."; //WE HAVE PERMISSION TO TRACK THEM
-            int duration = Toast.LENGTH_SHORT;
-
-            Toast toast = Toast.makeText(context, text, duration);
-            toast.show();
         }
+        else { //Permission was already granted.
+            buildGoogleApiClient();
+            mMap.setMyLocationEnabled(true);
+            mMap.setOnMyLocationClickListener(this);
+            mMap.setOnMyLocationButtonClickListener(this);
+            mUiSettings.setCompassEnabled(true);
+            mUiSettings.setZoomControlsEnabled(true);
 
+        }
+        ///////////////////////Toggle buttons for BOTH location and camera plotting and hiding///////////////////////
         /* button to find a route between two locations */
-        final ToggleButton destination_plan = (ToggleButton) findViewById(R.id.button1);
+        final ToggleButton destination_plan = (ToggleButton) findViewById(R.id.directionsbutton);
         destination_plan.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-
                 if (isChecked) {
 
                     // The toggle is enabled
@@ -372,7 +364,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             e.printStackTrace();
                         }
 
-                    } else if (curr_lat_lng.latitude == 0 && curr_lat_lng.longitude == 0) { //else if the user's location is not detected
+                    } else if (connected == false) { //else if the user's location is not detected
                         Context context = getApplicationContext();
                         CharSequence text = "Route cannot be planned until your current location is known.";
                         int duration = Toast.LENGTH_SHORT;
@@ -403,7 +395,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             }
         });
-
+       /* button to plot cameras or hide them*/
+        final ToggleButton cameras = (ToggleButton) findViewById(R.id.camera_button);
+        cameras.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean check) {
+                if (check)
+                {
+                    Toast.makeText(getApplicationContext(),"Cameras now showing", Toast.LENGTH_SHORT);
+                    //TODO: Insure plotting cameras work
+                    //plot_cameras();
+                }
+                else
+                {
+                    Toast.makeText(getApplicationContext(), "Cameras now hidden", Toast.LENGTH_SHORT);
+                    //TODO: Insure hiding cameras work
+                    //hide_cameras();
+                }
+            }
+        });
 
         MarkerOptions temp_search = new MarkerOptions()
                 .position(search_latLng) //CREATE A MARKER FOR THE USER'S LOCATION
@@ -462,49 +472,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-
-        final Button button = findViewById(R.id.location_zoom);
-        button.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                // Code here executes on main thread after user presses button
-                Context context = getApplicationContext();
-                Animation shake = AnimationUtils.loadAnimation(context, R.anim.shake);
-                v.startAnimation(shake);
-                //mMap.animateCamera(CameraUpdateFactory.newLatLng(curr_lat_lng));
-                if (curr_lat_lng.latitude != 0 && curr_lat_lng.longitude != 0) {
-                    CameraPosition default_Position = new CameraPosition.Builder()
-                            .target(curr_lat_lng)
-                            .zoom(15)                   // Sets the zoom
-                            .bearing(0)                // Sets the orientation of the camera to east
-                            .tilt(30)                   // Sets the tilt of the camera to 30 degrees
-                            .build();
-                    mMap.animateCamera(CameraUpdateFactory.newCameraPosition(default_Position));
-                } else {
-                    Context contexts = getApplicationContext();
-                    CharSequence text = "Cannot determine your location.";
-                    int duration = Toast.LENGTH_SHORT;
-
-                    Toast toast = Toast.makeText(contexts, text, duration);
-                    toast.show();
-                }
-            }
-        });
-
-
         // Initializing proper UI settings
-        UiSettings map_settings = mMap.getUiSettings();
-        map_settings.setZoomControlsEnabled(true);
-        map_settings.setCompassEnabled(true);
-
+        mUiSettings = mMap.getUiSettings();
+        mUiSettings.setZoomControlsEnabled(true);
+        mUiSettings.setCompassEnabled(true);
+        ///////////////////////Todo: Not sure if you want to keep that marker, because Google's default marker is easier to handle and change///////////////////////
         /*MARKER INITIALIZATION*/
 
         Context context = getApplicationContext();
-        Bitmap temp = BitmapFactory.decodeResource(context.getResources(),//TURN THE DRAWABLE ICON INTO A BITMAP
-                R.drawable.user_location);
-        Bitmap custom_marker = Bitmap.createScaledBitmap(temp, 80, 80, true); //RESCALE BITMAP ICON TO PROPER SIZE
+        //Bitmap temp = BitmapFactory.decodeResource(context.getResources(),//TURN THE DRAWABLE ICON INTO A BITMAP
+                //R.drawable.user_location);
+        //Bitmap custom_marker = Bitmap.createScaledBitmap(temp, 80, 80, true); //RESCALE BITMAP ICON TO PROPER SIZE
 
 
-        MarkerOptions a = new MarkerOptions()
+        /*MarkerOptions a = new MarkerOptions()
                 .position(curr_lat_lng) //CREATE A MARKER FOR THE USER'S LOCATION
                 .icon(BitmapDescriptorFactory.fromBitmap(custom_marker))
                 .alpha(0.0f); //weird fix for marker issues. When the app loads the marker is placed at 0,0
@@ -519,6 +500,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //check whether the network provider is enabled
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) { //USING THE NETWORK PROVIDER FOR LOCATION TRACKING
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                return;
+            }
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, new android.location.LocationListener() {
                 @Override
                 public void onLocationChanged(Location location) {
@@ -530,19 +521,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Geocoder geocoder = new Geocoder(getApplicationContext());
                     try {
                         List<Address> addressList = geocoder.getFromLocation(latitude, longitude, 1);
-                        //curr_location = addressList.get(0).getAddressLine(0);
-                        user_location.setPosition(curr_lat_lng); //UPDATE THE MARKER AS THEY MOVE AROUND
-                        user_location.setTitle("Current Location");
-                        user_location.setTag("user_location");
-                        //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f)); //JUST FOR DEBUGGING. THIS LINE CAUSES THE CAMERA TO RESET TOO OFTEN
+                        curr_location = addressList.get(0).getAddressLine(0);
 
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                     if (hide_route_flag) {
-                        user_location.setAlpha(0.0f);
+                        mCurrLocationMarker.setAlpha(0.0f);
                     } else {
-                        user_location.setAlpha(1.0f);
+                        mCurrLocationMarker.setAlpha(1.0f);
                     }
                 }
 
@@ -573,17 +560,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Geocoder geocoder = new Geocoder(getApplicationContext());
                     try {
                         List<Address> addressList = geocoder.getFromLocation(latitude, longitude, 1);
-                        //curr_location = addressList.get(0).getAddressLine(0);
-                        user_location.setPosition(latLng); //UPDATE THE MARKER AS THEY MOVE AROUND
-                        user_location.setTitle("Current Location");
-                        user_location.setTag("user_location");
+                        curr_location = addressList.get(0).getAddressLine(0);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                     if (hide_route_flag) {
-                        user_location.setAlpha(0.0f);
+                        mCurrLocationMarker.setAlpha(0.0f);
                     } else {
-                        user_location.setAlpha(1.0f);
+                        mCurrLocationMarker.setAlpha(1.0f);
                     }
                 }
 
@@ -603,100 +587,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             });
         }
-
-
-        /* THIS CODE IS FOR THE SIDE MENU */
-
-        mDrawerList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                //Toast.makeText(MapsActivity.this, "Position = " + position, Toast.LENGTH_SHORT).show();
-                if (position == 0) {
-                    complement0 = 1 ^ complement0;
-                    if (complement0 == 1) {
-                        Context context = getApplicationContext(); //TOGGLES THE MAP THEME TO NIGHTMODE
-                        boolean success = googleMap.setMapStyle(
-                                MapStyleOptions.loadRawResourceStyle(
-                                        context, R.raw.night_mode));
-                        mList.set(position, "NightMode");
-                        mAdapter.notifyDataSetChanged();
-
-                    } else {
-                        // The toggle is disabled
-                        Context context = getApplicationContext(); //TOGGLES THE MAP THEME TO STANDARD MODE
-                        boolean success = googleMap.setMapStyle(
-                                MapStyleOptions.loadRawResourceStyle(
-                                        context, R.raw.standard));
-                        mList.set(position, "Standard");
-                        mAdapter.notifyDataSetChanged();
-                    }
-                } else if (position == 1) {
-                    complement1++;
-                    if (complement1 == 1) {
-                        mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
-                        mList.set(position, "Satellite");
-                        mAdapter.notifyDataSetChanged();
-                    } else if (complement1 == 2) {
-                        // The toggle is disabled
-                        mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
-                        mList.set(position, "Hybrid");
-                        mAdapter.notifyDataSetChanged();
-                    } else if (complement1 == 3) {
-                        // The toggle is disabled
-                        mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
-                        mList.set(position, "Terrain");
-                        mAdapter.notifyDataSetChanged();
-                    } else {
-                        // The toggle is disabled
-                        complement1 = 0;
-                        mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-                        mList.set(position, "Drawn");
-                        mAdapter.notifyDataSetChanged();
-                    }
-                } else if (position == 2) {
-                    complement0 = 1 ^ complement0;
-                    if (complement0 == 1) { //ADD ALL MARKERS HERE!!!!
-                        int len = markers.size();
-                        len--;
-                        while (len != 0) {
-                            Marker temp = markers.get(len);
-                            temp.setAlpha(0.0f);
-                            len--;
-                        }
-                        mList.set(position, "Reveal Markers");
-                        mAdapter.notifyDataSetChanged();
-                        hide_route_flag = true;
-                    } else {
-                        // The toggle is disabled
-                        int len = markers.size();
-                        len--;
-                        while (len != 0) {
-                            Marker temp = markers.get(len);
-                            temp.setAlpha(0.75f);
-                            len--;
-                        }
-                        mList.set(position, "Hide Markers");
-                        mAdapter.notifyDataSetChanged();
-                        hide_route_flag = false;
-                    }
-                    if (query) {
-                        route.setVisible(!hide_route_flag);
-                    }
-                } else if (position == 3) {
-                    //camera_locate();
-                    //makeJsonArrayRequest();
-                    cams_hidden_flag = !cams_hidden_flag;
-                    if(!cams_hidden_flag) {
-                        plot_cameras();
-                        mList.set(position, "Hide Cameras");
-                    }
-                    else{
-                        hide_cameras();
-                        mList.set(position, "Display Cameras");
-                    }
-                }
-            }
-        });
 
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
@@ -811,7 +701,95 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         cam_markers.removeAll(cam_markers);
     }
 
+    ///////////////////////Navigation menu handler. Allowing various clicks.///////////////////////
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item)
+    {
+        int id = item.getItemId();
+        if (id == R.id.map_drawn)
+        {
+            mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+        }
+        else if (id == R.id.map_sat)
+        {
+            mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+        }
+        else if (id == R.id.map_hybrid)
+        {
+            mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+        }
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        drawer.closeDrawer(GravityCompat.START);
+        return false;
+    }
+    ///////////////////////One of the fucntions provided by the Google services API. Automatically detects when a user is connected or not///////////////////////
+    @Override
+    public void onConnected(@Nullable Bundle bundle)
+    {
+        connected = true; //HANDLER FOR THE DIRECTIONS BUTTON SO IT KNOWS IT'S CONNECTED
+
+        //Setting new request, and setting the time interval to update every 1000 millasecons.
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(1000);
+        mLocationRequest.setFastestInterval(1000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY); //Balance power and GPS accuracy.
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+        }
+    }
+
+    @Override
+    public void onConnectionSuspended(int i)
+    {
+        Toast.makeText(this,"onConnectionSuspended",Toast.LENGTH_SHORT).show();
+        connected = false; //HANDLER FOR THE DIRECTIONS BUTTON SO IT KNOWS IT'S DISCONNECTED
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult)
+    {
+        Toast.makeText(this,"onConnectionFailed",Toast.LENGTH_SHORT).show();
+        connected = false;
+    }
+    ///////////////////////One of the fucntions provided by the Google services API. Automatically detects if the user moves///////////////////////
+    @Override
+    public void onLocationChanged(Location location)
+    {
+        mLastLocation = location;
+        if (mCurrLocationMarker != null) {
+            mCurrLocationMarker.remove();
+        }
+
+        //Place current location marker
+        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        MarkerOptions markerOptions = new MarkerOptions();
+        markerOptions.position(latLng);
+        markerOptions.title("Current Position");
+        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+        mCurrLocationMarker = mMap.addMarker(markerOptions);
+
+        //move map camera
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+        mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
+
+        //stop location updates
+        if (mGoogleApiClient != null) {
+            LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+        }
+    }
+    ///////////////////////One of the functions provided by the Google Map API. The location on the top right corner is the default location button. Clicking it automatically zooms in on the user///////////////////////
+    @Override
+    public boolean onMyLocationButtonClick()
+    {
+        Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show();
+        return false;
+    }
+    ///////////////////////One of the functions provided by the Google Map API. When you click on your physical location, as in the blue dot, it tells you your location///////////////////////
+    @Override
+    public void onMyLocationClick(@NonNull Location location)
+    {
+        Toast.makeText(this, "Current location:\n" + location, Toast.LENGTH_LONG).show();
+    }
 }
-
-
-
