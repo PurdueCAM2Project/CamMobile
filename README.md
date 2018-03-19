@@ -21,7 +21,7 @@ WorldView is an Android app to view camera live feeds displayed over google maps
 
 * **Ryan Devlin** - *Initial work* - [RyanDevlin](https://github.com/RyanDevlin)
 * **Hussni Mohd Zakir** - *Updates and feature additions* -
-* **Jarod Navarro** - *Updates and feature additions* -
+* **Jarod Navarro** - *Updates and feature additions* - [JarodNavarro](https://github.com/JarodNavarro2)
 
 ## License
 
