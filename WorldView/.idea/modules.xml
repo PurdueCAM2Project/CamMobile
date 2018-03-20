@@ -4,8 +4,10 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/WorldView.iml" filepath="$PROJECT_DIR$/WorldView.iml" />
       <module fileurl="file://C:\Users\The Master\Documents\GitHub\CamMobile\WorldView\WorldView.iml" filepath="C:\Users\The Master\Documents\GitHub\CamMobile\WorldView\WorldView.iml" />
+      <module fileurl="file://C:\Users\Hussni\Documents\GitHub\CamMobile\WorldView\WorldView.iml" filepath="C:\Users\Hussni\Documents\GitHub\CamMobile\WorldView\WorldView.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://C:\Users\The Master\Documents\GitHub\CamMobile\WorldView\app\app.iml" filepath="C:\Users\The Master\Documents\GitHub\CamMobile\WorldView\app\app.iml" />
+      <module fileurl="file://C:\Users\Hussni\Documents\GitHub\CamMobile\WorldView\app\app.iml" filepath="C:\Users\Hussni\Documents\GitHub\CamMobile\WorldView\app\app.iml" />
     </modules>
   </component>
 </project>
