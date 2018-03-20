@@ -138,7 +138,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     boolean search_marker_hidden_flag = false;
     boolean curr_marker_hidden_flag = true;
     boolean cams_hidden_flag = true;
-    Camera hard =null;
     Camera camera_obj = null;
     Marker camera_marker = null;
     int num_cameras = 0;
@@ -230,25 +229,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         );
         // Adds the JSON object request "obreq" to the request queue
         requestQueue.add(arrayreq);
-        //hardcoding for demo
-        String descriptionk = "Las Vegas Strip: The Stratosphere";
-        String camera_typek = "IP";
-        int camera_idk = 3;
-        double latitudek = 36.1451;
-        double longitudek = -115.155;
-        String source_urlk = "https://www.skylinewebcams.com/en/webcam/united-states/nevada/las-vegas/las-vegas.html";
-        String countryk = "USA";
-        String cityk = "Las Vegas";
-        hard = new Camera(camera_idk);
-        hard.des(descriptionk);
-        hard.cam_type(camera_typek);
-        hard.lat(latitudek);
-        hard.lng(longitudek);
-        hard.cam_url(source_urlk);
-        hard.cam_country(countryk);
-        hard.cam_city(cityk);
-        cam_objects.add(0,hard);
-        //end of hardcoding
 
     }
     ///////////////////////Google API client that allows various functionality////////////////
