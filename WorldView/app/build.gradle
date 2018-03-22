@@ -47,6 +47,6 @@ dependencies {
     compile 'com.google.maps.android:android-maps-utils:0.5+'
     compile 'com.mcxiaoke.volley:library:1.0.19' //networking
     testCompile 'junit:junit:4.12'
-
+    compile 'com.github.jd-alexander:library:1.1.0' // polyline route library
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
 }
