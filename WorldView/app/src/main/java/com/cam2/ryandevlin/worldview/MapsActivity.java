@@ -1,6 +1,7 @@
 package com.cam2.ryandevlin.worldview;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Geocoder;
 import android.location.Location;
@@ -145,7 +146,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     boolean cams_hidden_flag = true;
     Camera camera_obj = null;
     Marker camera_marker = null;
-    int num_cameras = 0;
+    int num_cameras = 1;
+    String str;
+    Camera hard = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) { //CREATING THE MAP
@@ -240,6 +243,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         );
         // Adds the JSON object request "obreq" to the request queue
         requestQueue.add(arrayreq);
+        Log.d(TAG, "onCreate: hardcoding a camera");
+        //hardcoding for demo
+        String descriptionk = "Las Vegas Strip: The Stratosphere";
+        String camera_typek = "IP";
+        int camera_idk = 3;
+        double latitudek = 36.1451;
+        double longitudek = -115.155;
+        String source_urlk = "https://www.skylinewebcams.com/en/webcam/united-states/nevada/las-vegas/las-vegas.html";
+        String countryk = "USA";
+        String cityk = "Las Vegas";
+        hard = new Camera(camera_idk);
+        hard.des(descriptionk);
+        hard.cam_type(camera_typek);
+        hard.lat(latitudek);
+        hard.lng(longitudek);
+        hard.cam_url(source_urlk);
+        hard.cam_country(countryk);
+        hard.cam_city(cityk);
+        cam_objects.add(0,hard);
+        //end of hardcoding
 
     }
     ///////////////////////Google API client that allows various functionality////////////////
@@ -400,16 +423,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 {
                     Toast.makeText(getApplicationContext(),"Cameras now showing", Toast.LENGTH_SHORT);
                     //TODO: Insure plotting cameras work
-                    //plot_cameras();
+                    Log.d(TAG, "onCheckedChanged: Plotting cameras");
+                    plot_cameras();
                 }
                 else
                 {
                     Toast.makeText(getApplicationContext(), "Cameras now hidden", Toast.LENGTH_SHORT);
                     //TODO: Insure hiding cameras work
-                    //hide_cameras();
+                    hide_cameras();
                 }
             }
         });
+
+
 
         MarkerOptions temp_search = new MarkerOptions()
                 .position(search_latLng) //CREATE A MARKER FOR THE USER'S LOCATION
@@ -615,6 +641,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             .setIcon(android.R.drawable.ic_dialog_alert);
                     AlertDialog alertDialog = builder.create();
                     alertDialog.show();
+                }else if (marker.getTag() == "cam"){
+                    int index = Integer.parseInt(marker.getSnippet());
+                    Log.d(TAG, "onMarkerClick: get index of camera");
+                    Camera curr_camera = cam_objects.get(index);
+                    Log.d(TAG, "onMarkerClick: sets camera object");
+                    str = curr_camera.source_url;
+                    Log.d(TAG, "onMarkerClick: get url string");
+                    Intent intent = new Intent(MapsActivity.this,web_cam.class);
+                    intent.putExtra("source",str);
+                    Log.d(TAG, "onMarkerClick: put Extra in intent");
+                    startActivity(intent);
                 }
                 return false;
             }
@@ -678,8 +715,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     public void plot_cameras(){
         for(int i = 0; i < num_cameras; i++) {
+            Log.d(TAG, "plot_cameras: plotting camera "+i);
             Camera curr_camera = cam_objects.get(i);
-
             double lat = curr_camera.latitude;
             double lng = curr_camera.longitude;
             LatLng cam_location = new LatLng(lat, lng);
@@ -689,20 +726,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     R.drawable.cam_marker);
             Bitmap custom_marker = Bitmap.createScaledBitmap(temp, 60, 100, true); //RESCALE BITMAP ICON TO PROPER SIZE
 
-
             MarkerOptions a = new MarkerOptions()
                     .position(cam_location) //CREATE A MARKER FOR THE USER'S LOCATION
                     .icon(BitmapDescriptorFactory.fromBitmap(custom_marker))
                     .alpha(0.9f);
             camera_marker = mMap.addMarker(a);
-
-            camera_marker.setTitle(camera_obj.description);
+            camera_marker.setTitle(curr_camera.description);
             camera_marker.setTag("cam");
-
+            camera_marker.setSnippet(""+i);
             cam_markers.add(camera_marker);
         }
     }
     public void hide_cameras(){
+        Log.d(TAG, "hide_cameras: Hiding cameras");
         cam_markers.get(cam_markers.indexOf(camera_marker)).remove();
         cam_markers.removeAll(cam_markers);
     }
