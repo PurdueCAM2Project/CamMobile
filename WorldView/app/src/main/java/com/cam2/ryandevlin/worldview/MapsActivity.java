@@ -1,6 +1,7 @@
 package com.cam2.ryandevlin.worldview;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Geocoder;
 import android.location.Location;
@@ -15,6 +16,11 @@ import android.os.Bundle;
 import android.support.v4.view.GravityCompat;
 import android.util.Log;
 
+import com.directions.route.AbstractRouting;
+import com.directions.route.Route;
+import com.directions.route.RouteException;
+import com.directions.route.Routing;
+import com.directions.route.RoutingListener;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.model.CameraPosition;
@@ -90,7 +96,7 @@ import android.os.Build;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
-        LocationListener, GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener, NavigationView.OnNavigationItemSelectedListener {
+        LocationListener, GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener, NavigationView.OnNavigationItemSelectedListener, RoutingListener {
 
     String JsonURL = "https://tirtha.loyolachicagocs.org/cam2/database/api/cameras.json";
     String data = "";
@@ -138,23 +144,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     boolean search_marker_hidden_flag = false;
     boolean curr_marker_hidden_flag = true;
     boolean cams_hidden_flag = true;
-
     Camera camera_obj = null;
     Marker camera_marker = null;
-    int num_cameras = 0;
+    int num_cameras = 1;
+    String str;
+    Camera hard = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) { //CREATING THE MAP
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
+
+
+
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             checkLocationPermission();
         }
+        //initiate polylines for map
+        polylines = new ArrayList<>();
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
 
         // Construct a GeoDataClient.
         mGeoDataClient = Places.getGeoDataClient(this, null);
@@ -230,6 +243,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         );
         // Adds the JSON object request "obreq" to the request queue
         requestQueue.add(arrayreq);
+        Log.d(TAG, "onCreate: hardcoding a camera");
+        //hardcoding for demo
+        String descriptionk = "Las Vegas Strip: The Stratosphere";
+        String camera_typek = "IP";
+        int camera_idk = 3;
+        double latitudek = 36.1451;
+        double longitudek = -115.155;
+        String source_urlk = "https://www.skylinewebcams.com/en/webcam/united-states/nevada/las-vegas/las-vegas.html";
+        String countryk = "USA";
+        String cityk = "Las Vegas";
+        hard = new Camera(camera_idk);
+        hard.des(descriptionk);
+        hard.cam_type(camera_typek);
+        hard.lat(latitudek);
+        hard.lng(longitudek);
+        hard.cam_url(source_urlk);
+        hard.cam_country(countryk);
+        hard.cam_city(cityk);
+        cam_objects.add(0,hard);
+        //end of hardcoding
 
     }
     ///////////////////////Google API client that allows various functionality////////////////
@@ -342,27 +375,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // The toggle is enabled
                     if (query && (!search_marker_hidden_flag)) { //if the user has already searched a location
-                        try {
-                            com.google.maps.model.LatLng origin = LatLng_Convert(curr_lat_lng); //convert origin to correct class
-                            com.google.maps.model.LatLng destination = LatLng_Convert(search_latLng); //convert destination to correct class
+                        Log.d(TAG, "onCheckedChanged: toggle is on");
+                        addPolyline(curr_lat_lng, search_latLng);
+                        Context things = getApplicationContext();
+                        CharSequence text = "Path Calculated.";
+                        int duration = Toast.LENGTH_SHORT;
 
-                            DirectionsResult curr_directions = setDirections(mMap, origin, destination);
-
-                            addPolyline(curr_directions, mMap);
-
-                            Context things = getApplicationContext();
-                            CharSequence text = "Path Calculated.";
-                            int duration = Toast.LENGTH_SHORT;
-
-                            Toast toast = Toast.makeText(things, text, duration);
-                            toast.show();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        } catch (ApiException e) {
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
 
                     } else if (connected == false) { //else if the user's location is not detected
                         Context context = getApplicationContext();
@@ -383,6 +401,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     }
                 } else {
                     // The toggle is disabled
+                    erasePolylines();
                     if (query && (route != null)) {
                         route.remove();
                         Context context = getApplicationContext();
@@ -404,16 +423,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 {
                     Toast.makeText(getApplicationContext(),"Cameras now showing", Toast.LENGTH_SHORT);
                     //TODO: Insure plotting cameras work
-                    //plot_cameras();
+                    Log.d(TAG, "onCheckedChanged: Plotting cameras");
+                    plot_cameras();
                 }
                 else
                 {
                     Toast.makeText(getApplicationContext(), "Cameras now hidden", Toast.LENGTH_SHORT);
                     //TODO: Insure hiding cameras work
-                    //hide_cameras();
+                    hide_cameras();
                 }
             }
         });
+
+
 
         MarkerOptions temp_search = new MarkerOptions()
                 .position(search_latLng) //CREATE A MARKER FOR THE USER'S LOCATION
@@ -439,6 +461,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
                 query = true;
                 search_marker_hidden_flag = false;
+                Log.d(TAG, "onPlaceSelected: setting search lat and long");
                 search_latLng = place.getLatLng();
                 search_name = (String) place.getName();
                 search_zoom = place.getViewport();
@@ -517,6 +540,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     double latitude = location.getLatitude();
                     double longitude = location.getLongitude();
                     //create latlng class
+                    Log.d(TAG, "onLocationChanged: setting current latitude and longitude");
                     curr_lat_lng = new LatLng(latitude, longitude);
                     Geocoder geocoder = new Geocoder(getApplicationContext());
                     try {
@@ -617,6 +641,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             .setIcon(android.R.drawable.ic_dialog_alert);
                     AlertDialog alertDialog = builder.create();
                     alertDialog.show();
+                }else if (marker.getTag() == "cam"){
+                    int index = Integer.parseInt(marker.getSnippet());
+                    Log.d(TAG, "onMarkerClick: get index of camera");
+                    Camera curr_camera = cam_objects.get(index);
+                    Log.d(TAG, "onMarkerClick: sets camera object");
+                    str = curr_camera.source_url;
+                    Log.d(TAG, "onMarkerClick: get url string");
+                    Intent intent = new Intent(MapsActivity.this,web_cam.class);
+                    intent.putExtra("source",str);
+                    Log.d(TAG, "onMarkerClick: put Extra in intent");
+                    startActivity(intent);
                 }
                 return false;
             }
@@ -654,10 +689,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return result;
     }
 
-    private void addPolyline(DirectionsResult results, GoogleMap mMap) {
-        List<LatLng> decodedPath = PolyUtil.decode(results.routes[0].overviewPolyline.getEncodedPath());
-        route = mMap.addPolyline(new PolylineOptions().addAll(decodedPath).width(12).color(Color.argb(200, 255, 102, 102)).geodesic(true));
-        route.setVisible(true);
+    private void addPolyline(LatLng origin,LatLng destination) {
+        Log.d(TAG, "addPolyline: entered the polyline function");
+        Routing routing = new Routing.Builder()
+                .travelMode(AbstractRouting.TravelMode.DRIVING)
+                .withListener(this)
+                .alternativeRoutes(false)
+                .waypoints(origin,destination)
+                .build();
+        routing.execute();
+        //List<LatLng> decodedPath = PolyUtil.decode(results.routes[0].overviewPolyline.getEncodedPath());
+        //route = mMap.addPolyline(new PolylineOptions().addAll(decodedPath).width(12).color(Color.argb(200, 255, 102, 102)).geodesic(true));
+        //route.setVisible(true);
     }
 
     public com.google.maps.model.LatLng LatLng_Convert(LatLng prev) { //small function to handle latlng class conversions because Google decided to make conflicting classes
@@ -672,8 +715,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     public void plot_cameras(){
         for(int i = 0; i < num_cameras; i++) {
+            Log.d(TAG, "plot_cameras: plotting camera "+i);
             Camera curr_camera = cam_objects.get(i);
-
             double lat = curr_camera.latitude;
             double lng = curr_camera.longitude;
             LatLng cam_location = new LatLng(lat, lng);
@@ -683,20 +726,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     R.drawable.cam_marker);
             Bitmap custom_marker = Bitmap.createScaledBitmap(temp, 60, 100, true); //RESCALE BITMAP ICON TO PROPER SIZE
 
-
             MarkerOptions a = new MarkerOptions()
                     .position(cam_location) //CREATE A MARKER FOR THE USER'S LOCATION
                     .icon(BitmapDescriptorFactory.fromBitmap(custom_marker))
                     .alpha(0.9f);
             camera_marker = mMap.addMarker(a);
-
-            camera_marker.setTitle(camera_obj.description);
+            camera_marker.setTitle(curr_camera.description);
             camera_marker.setTag("cam");
-
+            camera_marker.setSnippet(""+i);
             cam_markers.add(camera_marker);
         }
     }
     public void hide_cameras(){
+        Log.d(TAG, "hide_cameras: Hiding cameras");
         cam_markers.get(cam_markers.indexOf(camera_marker)).remove();
         cam_markers.removeAll(cam_markers);
     }
@@ -791,5 +833,63 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMyLocationClick(@NonNull Location location)
     {
         Toast.makeText(this, "Current location:\n" + location, Toast.LENGTH_LONG).show();
+    }
+
+
+    ////////Calculating Polylines to be used on Map///////////////////////////////////////////////////////////////////
+    private List<Polyline> polylines;
+    private static final int[] COLORS = new int[]{R.color.primary_dark_material_light};
+
+    @Override
+    public void onRoutingFailure(RouteException e) {
+        if(e != null) {
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }else {
+            Toast.makeText(this, "Something went wrong, Try again", Toast.LENGTH_SHORT).show();
+        }
+
+    }
+
+    @Override
+    public void onRoutingStart() {
+
+    }
+
+    @Override
+    public void onRoutingSuccess(ArrayList<Route> route, int shortestRoutingIndex) {
+        if(polylines.size()>0) {
+            for (Polyline poly : polylines) {
+                poly.remove();
+            }
+        }
+
+        polylines = new ArrayList<>();
+        //add route(s) to the map.
+        for (int i = 0; i <route.size(); i++) {
+
+            //In case of more than 5 alternative routes
+            int colorIndex = i % COLORS.length;
+
+            PolylineOptions polyOptions = new PolylineOptions();
+            polyOptions.color(getResources().getColor(COLORS[colorIndex]));
+            polyOptions.width(10 + i * 3);
+            polyOptions.addAll(route.get(i).getPoints());
+            Polyline polyline = mMap.addPolyline(polyOptions);
+            polylines.add(polyline);
+
+            //Toast.makeText(getApplicationContext(),"Route "+ (i+1) +": distance - "+ route.get(i).getDistanceValue()+": duration - "+ route.get(i).getDurationValue(),Toast.LENGTH_SHORT).show();
+        }
+
+    }
+
+    @Override
+    public void onRoutingCancelled() {
+
+    }
+    private void erasePolylines(){
+        for(Polyline line : polylines){
+            line.remove();
+        }
+        polylines.clear();
     }
 }
