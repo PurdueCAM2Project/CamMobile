@@ -96,7 +96,7 @@ import android.os.Build;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
-        LocationListener, GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener, NavigationView.OnNavigationItemSelectedListener, RoutingListener {
+        LocationListener, GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener, NavigationView.OnNavigationItemSelectedListener, RoutingListener, View.OnClickListener {
 
     String JsonURL = "https://tirtha.loyolachicagocs.org/cam2/database/api/cameras.json";
     String data = "";
@@ -117,7 +117,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GeoDataClient mGeoDataClient;
     private PlaceDetectionClient mPlaceDetectionClient;
 
-
+    Button side_menu_button;
     LocationManager locationManager;
     String curr_location = null;
     LatLng curr_lat_lng = new LatLng(0, 0);
@@ -156,8 +156,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(R.layout.activity_maps);
 
 
-
-
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             checkLocationPermission();
         }
@@ -182,6 +180,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //Creating and enabling the Navigation View
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        side_menu_button = (Button) findViewById(R.id.side_button);
+        side_menu_button.setOnClickListener(MapsActivity.this);
 
         // Creating the JsonObjectRequest class called obreq, passing required parameters:
         //GET is used to fetch data from the server, JsonURL is the URL to be fetched from.
@@ -891,5 +892,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             line.remove();
         }
         polylines.clear();
+    }
+
+    @Override
+    public void onClick(View view)
+    {
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        drawer.openDrawer(GravityCompat.START);
     }
 }
