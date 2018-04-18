@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group >
+        <item
+            android:id="@+id/map_drawn"
+            android:title="Drawn" />
+        <item
+            android:id="@+id/map_sat"
+            android:title="Sattelight" />
+        <item
+            android:id="@+id/map_hybrid"
+            android:title="Hybrid" />
+    </group>
+</menu>
