@@ -346,6 +346,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mMap = googleMap; //OBJECT FOR MAP MANIPULATION
         mUiSettings = mMap.getUiSettings();
+        mMap.setPadding(0,100,0,0);
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (ContextCompat.checkSelfPermission(this,
                     Manifest.permission.ACCESS_FINE_LOCATION)
@@ -551,9 +552,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    if (hide_route_flag) {
+                    if (hide_route_flag && mCurrLocationMarker != null) {
                         mCurrLocationMarker.setAlpha(0.0f);
-                    } else {
+                    } else if(mCurrLocationMarker != null) {
                         mCurrLocationMarker.setAlpha(1.0f);
                     }
                 }
@@ -589,9 +590,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    if (hide_route_flag) {
+                    if (hide_route_flag && mCurrLocationMarker != null) {
                         mCurrLocationMarker.setAlpha(0.0f);
-                    } else {
+                    } else if(mCurrLocationMarker != null) {
                         mCurrLocationMarker.setAlpha(1.0f);
                     }
                 }
