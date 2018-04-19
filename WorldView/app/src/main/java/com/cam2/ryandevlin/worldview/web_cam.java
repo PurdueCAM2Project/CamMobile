@@ -11,42 +11,27 @@ import android.webkit.WebViewClient;
 
 /**
  * Created by Hussni on 3/22/2018.
+ * This activity launches webview for url's sent to it
  */
 
 public class web_cam extends AppCompatActivity {
-
     private static final String TAG = "Web_cam";
-
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.web_cam);
-
-
-        Log.d(TAG, "onCreate: Web_cam layout started");
+        //get Intent
         Intent Incomingintent = getIntent();
+        // get URL
         String weburl = Incomingintent.getStringExtra("source");
-        Log.d(TAG, "onCreate: load weburl");
-
-        /*Button rtnBtn = (Button) findViewById(R.id.returnbtn);
-        rtnBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(web_cam.this,MapsActivity.class);
-                startActivity(intent);
-            }
-        });*/
-
-        Log.d(TAG, "onCreate: creating webview");
+        // Launch Webview
         WebView webb = (WebView) findViewById(R.id.Web_view);
         WebSettings webSettings = webb.getSettings();
+        //This setting allows Videoplayer in website to run
         webSettings.setJavaScriptEnabled(true);
         webSettings.setUseWideViewPort(true);
         webb.setWebViewClient(new WebViewClient());
         webb.loadUrl(weburl);
-
-
     }
-
 
 }

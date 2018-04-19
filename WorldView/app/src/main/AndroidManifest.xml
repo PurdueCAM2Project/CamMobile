@@ -40,6 +40,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".web_cam"></activity>
+        <activity android:name=".Camera_List"></activity>
         <uses-library android:name="com.google.android.maps" />
 
     </application>

@@ -10,5 +10,8 @@
         <item
             android:id="@+id/map_hybrid"
             android:title="Hybrid" />
+        <item
+            android:id="@+id/cam_search"
+            android:title="Search Cameras" />
     </group>
 </menu>

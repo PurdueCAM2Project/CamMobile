@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
+import android.os.StrictMode;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
@@ -137,7 +138,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     List<Marker> markers = new ArrayList<Marker>();
     List<Marker> cam_markers = new ArrayList<Marker>();
-    List<Camera> cam_objects = new ArrayList<Camera>();
+    ArrayList<Camera> cam_objects = new ArrayList<Camera>();
 
     public Polyline route = null;
     boolean hide_route_flag = false;
@@ -208,6 +209,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 int camera_id = camera.getInt("camera_id");
                                 double latitude = camera.getDouble("lat");
                                 double longitude = camera.getDouble("lng");
+                                String formatted_address = getFormattedAddress(latitude,longitude);
                                 String source_url = camera.getString("source_url");
                                 String country = camera.getString("country");
                                 String city = camera.getString("city");
@@ -218,10 +220,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 camera_obj.cam_type(camera_type);
                                 camera_obj.lat(latitude);
                                 camera_obj.lng(longitude);
+                                camera_obj.cam_address(formatted_address);
                                 camera_obj.cam_url(source_url);
                                 camera_obj.cam_country(country);
                                 camera_obj.cam_city(city);
-
                                 cam_objects.add(i - 1, camera_obj); // add the camera object to the list
                             }
                         }
@@ -246,26 +248,109 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         requestQueue.add(arrayreq);
         Log.d(TAG, "onCreate: hardcoding a camera");
         //hardcoding for demo
-        String descriptionk = "Las Vegas Strip: The Stratosphere";
-        String camera_typek = "IP";
-        int camera_idk = 3;
-        double latitudek = 36.1451;
-        double longitudek = -115.155;
-        String source_urlk = "https://www.skylinewebcams.com/en/webcam/united-states/nevada/las-vegas/las-vegas.html";
-        String countryk = "USA";
-        String cityk = "Las Vegas";
-        hard = new Camera(camera_idk);
-        hard.des(descriptionk);
-        hard.cam_type(camera_typek);
-        hard.lat(latitudek);
-        hard.lng(longitudek);
-        hard.cam_url(source_urlk);
-        hard.cam_country(countryk);
-        hard.cam_city(cityk);
+        String formatted_addressk = null;
+        try {
+            formatted_addressk = getFormattedAddress(36.1451,-115.155);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        hard = new Camera( 3);
+        hard.des("Las Vegas Strip: The Stratosphere");
+        hard.cam_type("IP");
+        hard.lat(36.1451);
+        hard.lng(-115.155);
+        hard.cam_address(formatted_addressk);
+        hard.cam_url("https://www.skylinewebcams.com/en/webcam/united-states/nevada/las-vegas/las-vegas.html");
+        hard.cam_country("USA");
+        hard.cam_city("Las Vegas");
         cam_objects.add(0,hard);
+        hard = new Camera(2);
+        hard.lat(18.1825);
+        hard.lng(-63.137553);
+        try {
+            hard.cam_address(getFormattedAddress(hard.latitude,hard.longitude));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        hard.cam_url("https://www.earthcam.com/world/anguilla/meadsbay/?cam=meadsbay_hd");
+        cam_objects.add(1,hard);
+        hard = new Camera(2);
+        hard.lat(40.731414);
+        hard.lng(-73.9969);
+        try {
+            hard.cam_address(getFormattedAddress(hard.latitude,hard.longitude));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        hard.cam_url("https://www.earthcam.com/usa/newyork/fifthave/?cam=nyc5th_str");
+        cam_objects.add(2,hard);
+        hard = new Camera(2);
+        hard.lat(-8.391231);
+        hard.lng(115.283947);
+        try {
+            hard.cam_address(getFormattedAddress(hard.latitude,hard.longitude));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        hard.cam_url("https://www.earthcam.com/world/indonesia/bali/?cam=bali1");
+        cam_objects.add(3,hard);
+        hard = new Camera(2);
+        hard.lat(51.537027);
+        hard.lng(-0.183218);
+        try {
+            hard.cam_address(getFormattedAddress(hard.latitude,hard.longitude));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        hard.cam_url("https://www.earthcam.com/world/england/london/abbeyroad/?cam=abbeyroad_uk");
+        cam_objects.add(4,hard);
+
+        hard = new Camera(2);
+        hard.lat(34.101393);
+        hard.lng(-118.3389);
+        try {
+            hard.cam_address(getFormattedAddress(hard.latitude,hard.longitude));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        hard.cam_url("https://www.earthcam.com/usa/california/losangeles/hollywoodblvd/?cam=hollywoodblvd");
+        cam_objects.add(5,hard);
+
         //end of hardcoding
 
     }
+
+
+    String faddress;
+    // This function will request from google's geocoder the formatted address given a location's latitude and longitude
+    public String getFormattedAddress(double lat, double lng) throws JSONException {
+        //addressQueue= Volley.newRequestQueue(this);
+        //The string below will send a request to google to get formatted address in JSONObject form. In the JSONObject the tag for formatted address
+        // is "formatted_address"
+        String address = String.format("https://maps.googleapis.com/maps/api/geocode/json?latlng=%.4f,%.4f&key=AIzaSyAIUYsMnJDb1v1gIaXZ1EIIwR2eRFjJrbw",lat,lng);
+        String formatted_address;
+        try {
+            //without this there will be "android.os.NetworkOnMainThreadException exception" error however must be used only in development environment
+            StrictMode.ThreadPolicy policy = new
+                    StrictMode.ThreadPolicy.Builder()
+                    .permitAll().build();
+            StrictMode.setThreadPolicy(policy);
+            //// the mode above causes app to be problematic around area with spotty wifi
+
+            // reads JSONObject from url
+            JSONObject jsonResult = JsonReader.readJsonFromUrl(address);
+            JSONArray data = jsonResult.getJSONArray("results");
+            // getformatted address
+            faddress = data.getJSONObject(0).getString("formatted_address");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        formatted_address = faddress;
+        return formatted_address;
+    }
+
     ///////////////////////Google API client that allows various functionality////////////////
     protected synchronized void buildGoogleApiClient() {
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -644,15 +729,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     AlertDialog alertDialog = builder.create();
                     alertDialog.show();
                 }else if (marker.getTag() == "cam"){
+                    // If the marker clicked is a camera ie. tagged 'cam', we get its index via snippet of the marker.
+                    // The url is extracted from the camera array and sent to web_cam.java to launch the website associated with the camera
+                    // The url is sent using intent.putExtra
                     int index = Integer.parseInt(marker.getSnippet());
-                    Log.d(TAG, "onMarkerClick: get index of camera");
                     Camera curr_camera = cam_objects.get(index);
-                    Log.d(TAG, "onMarkerClick: sets camera object");
                     str = curr_camera.source_url;
-                    Log.d(TAG, "onMarkerClick: get url string");
                     Intent intent = new Intent(MapsActivity.this,web_cam.class);
                     intent.putExtra("source",str);
-                    Log.d(TAG, "onMarkerClick: put Extra in intent");
                     startActivity(intent);
                 }
                 return false;
@@ -692,7 +776,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void addPolyline(LatLng origin,LatLng destination) {
-        Log.d(TAG, "addPolyline: entered the polyline function");
+        //This function uses external library to build its polylines on the map. The library is located in build.gradle
         Routing routing = new Routing.Builder()
                 .travelMode(AbstractRouting.TravelMode.DRIVING)
                 .withListener(this)
@@ -700,11 +784,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .waypoints(origin,destination)
                 .build();
         routing.execute();
-        //List<LatLng> decodedPath = PolyUtil.decode(results.routes[0].overviewPolyline.getEncodedPath());
-        //route = mMap.addPolyline(new PolylineOptions().addAll(decodedPath).width(12).color(Color.argb(200, 255, 102, 102)).geodesic(true));
-        //route.setVisible(true);
-    }
 
+    }
     public com.google.maps.model.LatLng LatLng_Convert(LatLng prev) { //small function to handle latlng class conversions because Google decided to make conflicting classes
         com.google.maps.model.LatLng result = new com.google.maps.model.LatLng(0, 0);
 
@@ -740,8 +821,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
     public void hide_cameras(){
-        Log.d(TAG, "hide_cameras: Hiding cameras");
-        cam_markers.get(cam_markers.indexOf(camera_marker)).remove();
+        for(int i=0;i<cam_markers.size();i++) {
+            cam_markers.get(i).remove();
+        }
         cam_markers.removeAll(cam_markers);
     }
 
@@ -761,6 +843,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         else if (id == R.id.map_hybrid)
         {
             mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+        }
+        else if (id == R.id.cam_search)
+        {
+            // Search Camera Function
+            Intent i = new Intent(MapsActivity.this,Camera_List.class);
+            Bundle b = new Bundle();
+            // TODO : Serialize is old method of sending objects, investigate Parcelable.
+            // Puts camera array into serialized bundle to be sent across activities
+            b.putSerializable("cameras", cam_objects);
+            i.putExtras(b);
+            startActivity(i);
         }
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
