@@ -1,17 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <group >
-        <item
-            android:id="@+id/map_drawn"
-            android:title="Drawn" />
-        <item
-            android:id="@+id/map_sat"
-            android:title="Sattelight" />
-        <item
-            android:id="@+id/map_hybrid"
-            android:title="Hybrid" />
+    <group>
         <item
             android:id="@+id/cam_search"
+            android:icon="@drawable/cam_icon"
             android:title="Search Cameras" />
+        <item
+            android:id="@+id/fav_place"
+            android:icon="@android:drawable/btn_star"
+            android:title="Favorite Places" />
+        <item
+            android:id="@+id/fav_cam"
+            android:icon="@android:drawable/ic_menu_camera"
+            android:title="Favorite Cameras" />
+    </group>
+    <group>
+        <item
+            android:id="@+id/nav_settings"
+            android:icon="@android:drawable/ic_menu_manage"
+            android:title="Settings" />
+        <item
+            android:id="@+id/import_google"
+            android:icon="@drawable/common_google_signin_btn_icon_light"
+            android:title="Import Google Places " />
     </group>
 </menu>

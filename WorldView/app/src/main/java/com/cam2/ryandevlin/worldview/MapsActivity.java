@@ -119,6 +119,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private PlaceDetectionClient mPlaceDetectionClient;
 
     Button side_menu_button;
+    Button map_options_button;
     LocationManager locationManager;
     String curr_location = null;
     LatLng curr_lat_lng = new LatLng(0, 0);
@@ -181,69 +182,98 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //Creating and enabling the Navigation View
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
-
+        //Initializing the button meant for bring up the side menu (tool bar option wasn't going to work)
         side_menu_button = (Button) findViewById(R.id.side_button);
         side_menu_button.setOnClickListener(MapsActivity.this);
+        //Button in which will bring up a popup menu for the various map options
+        map_options_button = (Button) findViewById(R.id.map_options);
+        map_options_button.setOnClickListener(new View.OnClickListener() {
+                                                  @Override
+                                                  public void onClick(View view) {
+                                                      PopupMenu popup = new PopupMenu(MapsActivity.this, map_options_button);
+                                                      popup.getMenuInflater().inflate(R.menu.popup_map_options, popup.getMenu());
+                                                      popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                                                          @Override
+                                                          public boolean onMenuItemClick(MenuItem menuItem)
+                                                          {
+                                                              int item = menuItem.getItemId();
+                                                              if (item == R.id.map_drawn)
+                                                              {
+                                                                  mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                                                              }
+                                                              else if (item == R.id.map_sat)
+                                                              {
+                                                                  mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                                                              }
+                                                              else if (item == R.id.map_hybrid)
+                                                              {
+                                                                  mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                                                              }
+                                                              return true;
+                                                          }
+                                                      });
+                                                    popup.show();
+                                                  }
+                                              });
+                // Creating the JsonObjectRequest class called obreq, passing required parameters:
+                //GET is used to fetch data from the server, JsonURL is the URL to be fetched from.
+                JsonArrayRequest arrayreq = new JsonArrayRequest(JsonURL,
+                        // The second parameter Listener overrides the method onResponse() and passes
+                        //JSONArray as a parameter
+                        new Response.Listener<JSONArray>() {
 
-        // Creating the JsonObjectRequest class called obreq, passing required parameters:
-        //GET is used to fetch data from the server, JsonURL is the URL to be fetched from.
-        JsonArrayRequest arrayreq = new JsonArrayRequest(JsonURL,
-                // The second parameter Listener overrides the method onResponse() and passes
-                //JSONArray as a parameter
-                new Response.Listener<JSONArray>() {
+                            // Takes the response from the JSON request
+                            @Override
+                            public void onResponse(JSONArray response) {
+                                try {
+                                    //JSONObject camera = response.getJSONObject(0);
+                                    //int size = camera.length();
+                                    int i = 0;
+                                    num_cameras = response.length();
+                                    while (i < num_cameras) {
+                                        JSONObject camera = response.getJSONObject(i);
+                                        i++;
 
-                    // Takes the response from the JSON request
-                    @Override
-                    public void onResponse(JSONArray response) {
-                        try {
-                            //JSONObject camera = response.getJSONObject(0);
-                            //int size = camera.length();
-                            int i = 0;
-                            num_cameras = response.length();
-                            while (i < num_cameras) {
-                                JSONObject camera = response.getJSONObject(i);
-                                i++;
-
-                                String description = camera.getString("description");
-                                String camera_type = camera.getString("camera_type");
-                                int camera_id = camera.getInt("camera_id");
-                                double latitude = camera.getDouble("lat");
-                                double longitude = camera.getDouble("lng");
-                                String formatted_address = getFormattedAddress(latitude,longitude);
-                                String source_url = camera.getString("source_url");
-                                String country = camera.getString("country");
-                                String city = camera.getString("city");
+                                        String description = camera.getString("description");
+                                        String camera_type = camera.getString("camera_type");
+                                        int camera_id = camera.getInt("camera_id");
+                                        double latitude = camera.getDouble("lat");
+                                        double longitude = camera.getDouble("lng");
+                                        String formatted_address = getFormattedAddress(latitude, longitude);
+                                        String source_url = camera.getString("source_url");
+                                        String country = camera.getString("country");
+                                        String city = camera.getString("city");
 
                             /* create new Camera object */
-                                camera_obj = new Camera(camera_id);
-                                camera_obj.des(description);
-                                camera_obj.cam_type(camera_type);
-                                camera_obj.lat(latitude);
-                                camera_obj.lng(longitude);
-                                camera_obj.cam_address(formatted_address);
-                                camera_obj.cam_url(source_url);
-                                camera_obj.cam_country(country);
-                                camera_obj.cam_city(city);
-                                cam_objects.add(i - 1, camera_obj); // add the camera object to the list
+                                        camera_obj = new Camera(camera_id);
+                                        camera_obj.des(description);
+                                        camera_obj.cam_type(camera_type);
+                                        camera_obj.lat(latitude);
+                                        camera_obj.lng(longitude);
+                                        camera_obj.cam_address(formatted_address);
+                                        camera_obj.cam_url(source_url);
+                                        camera_obj.cam_country(country);
+                                        camera_obj.cam_city(city);
+                                        cam_objects.add(i - 1, camera_obj); // add the camera object to the list
+                                    }
+                                }
+                                // Try and catch are included to handle any errors due to JSON
+                                catch (JSONException e) {
+                                    // If an error occurs, this prints the error to the log
+                                    e.printStackTrace();
+                                }
+                            }
+                        },
+                        // The final parameter overrides the method onErrorResponse() and passes VolleyError
+                        //as a parameter
+                        new Response.ErrorListener() {
+                            @Override
+                            // Handles errors that occur due to Volley
+                            public void onErrorResponse(VolleyError error) {
+                                Log.e("Volley", "Error");
                             }
                         }
-                        // Try and catch are included to handle any errors due to JSON
-                        catch (JSONException e) {
-                            // If an error occurs, this prints the error to the log
-                            e.printStackTrace();
-                        }
-                    }
-                },
-                // The final parameter overrides the method onErrorResponse() and passes VolleyError
-                //as a parameter
-                new Response.ErrorListener() {
-                    @Override
-                    // Handles errors that occur due to Volley
-                    public void onErrorResponse(VolleyError error) {
-                        Log.e("Volley", "Error");
-                    }
-                }
-        );
+                );
         // Adds the JSON object request "obreq" to the request queue
         requestQueue.add(arrayreq);
         Log.d(TAG, "onCreate: hardcoding a camera");
@@ -431,7 +461,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mMap = googleMap; //OBJECT FOR MAP MANIPULATION
         mUiSettings = mMap.getUiSettings();
-        mMap.setPadding(0,100,0,0);
+        //mMap.setPadding(0,100,0,0);
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (ContextCompat.checkSelfPermission(this,
                     Manifest.permission.ACCESS_FINE_LOCATION)
@@ -832,19 +862,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public boolean onNavigationItemSelected(@NonNull MenuItem item)
     {
         int id = item.getItemId();
-        if (id == R.id.map_drawn)
-        {
-            mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-        }
-        else if (id == R.id.map_sat)
-        {
-            mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
-        }
-        else if (id == R.id.map_hybrid)
-        {
-            mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
-        }
-        else if (id == R.id.cam_search)
+
+        if (id == R.id.cam_search)
         {
             // Search Camera Function
             Intent i = new Intent(MapsActivity.this,Camera_List.class);
