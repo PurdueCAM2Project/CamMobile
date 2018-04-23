@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="140dp"
-    android:background="#26A599">
+    android:background="@drawable/menu_background">
 
     <TextView
         android:id="@+id/textView"
@@ -13,7 +13,8 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_toEndOf="@+id/imageView"
-        android:text="Need to insert proper image " />
+        android:text="                  A new way to view the Planet  "
+        android:textColor="FFFFFF"/>
 
     <ImageView
         android:id="@+id/imageView"

@@ -3,7 +3,7 @@
     <group>
         <item
             android:id="@+id/cam_search"
-            android:icon="@drawable/cam_icon"
+            android:icon="@drawable/cam_icon_web"
             android:title="Search Cameras" />
         <item
             android:id="@+id/fav_place"
