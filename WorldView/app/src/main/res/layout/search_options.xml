@@ -29,7 +29,7 @@
         android:layout_height="48dp"
         android:layout_marginBottom="16dp"
         android:layout_marginTop="8dp"
-        android:background="@drawable/ic_toggle_cam"
+        android:background="@drawable/cam_icon_web"
         android:text="ToggleButton"
         android:textOff=""
         android:textOn=""

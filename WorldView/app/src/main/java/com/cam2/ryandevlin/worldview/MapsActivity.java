@@ -17,6 +17,7 @@ import android.os.Bundle;
 import android.support.v4.view.GravityCompat;
 import android.util.Log;
 
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.directions.route.AbstractRouting;
 import com.directions.route.Route;
 import com.directions.route.RouteException;
@@ -53,6 +54,7 @@ import com.google.android.gms.location.LocationServices;
 import android.location.Address;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.List;
 
 ///////////////////////
@@ -80,26 +82,31 @@ import com.google.maps.android.PolyUtil;
 import org.joda.time.DateTime;
 import java.util.concurrent.TimeUnit;
 
-import com.android.volley.toolbox.Volley;
-import com.android.volley.Response;
-import com.android.volley.RequestQueue;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonArrayRequest;
-
-import org.json.JSONObject;
-import org.json.JSONArray;
-import org.json.JSONException;
+//import org.json.JSONObject;
+//import org.json.JSONArray;
+//import org.json.JSONException;
 
 import android.graphics.Color;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Build;
 
+// -- Web Imports -- //
+import java.net.*;
+import java.io.*;
+import org.json.*;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.Volley;
+
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener, GoogleMap.OnMyLocationButtonClickListener, GoogleMap.OnMyLocationClickListener, NavigationView.OnNavigationItemSelectedListener, RoutingListener, View.OnClickListener {
 
-    String JsonURL = "https://tirtha.loyolachicagocs.org/cam2/database/api/cameras.json";
+    // Location of Database API token requests
     String data = "";
     RequestQueue requestQueue;
     TextView results;
@@ -149,8 +156,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     Camera camera_obj = null;
     Marker camera_marker = null;
     int num_cameras = 1;
+    int curr_max_cams = 0;
     String str;
     Camera hard = null;
+
+    // -- New Camera Parsing -- //
+    String master_token = new String();
+    String base_URL = "https://cam2-api.herokuapp.com/";
+    String JsonURL_token = "https://cam2-api.herokuapp.com/auth?clientID=5804518549e100481b100ac0fdfff756177ffd266fe181b6df02744ec2f0fe31befc6c67f93c844aaac3e05cce1f9087&clientSecret=b3f3eec2d6805dd2c6003003a938c068ba9ca6d5eca7cbaf258bfe18aaf989272423de536a356b32f7b48c6b6d89a460";
+    boolean cam_exists = false; //Camera array flag
+    boolean first_run = true;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) { //CREATING THE MAP
@@ -161,6 +178,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             checkLocationPermission();
         }
+        requestQueue = Volley.newRequestQueue(this);
+        //token_req();
+
         //initiate polylines for map
         polylines = new ArrayList<>();
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -175,8 +195,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Construct a PlaceDetectionClient.
         mPlaceDetectionClient = Places.getPlaceDetectionClient(this, null);
 
-
-        requestQueue = Volley.newRequestQueue(this);
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         //Creating and enabling the Navigation View
@@ -215,68 +233,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                                     popup.show();
                                                   }
                                               });
-                // Creating the JsonObjectRequest class called obreq, passing required parameters:
-                //GET is used to fetch data from the server, JsonURL is the URL to be fetched from.
-                JsonArrayRequest arrayreq = new JsonArrayRequest(JsonURL,
-                        // The second parameter Listener overrides the method onResponse() and passes
-                        //JSONArray as a parameter
-                        new Response.Listener<JSONArray>() {
 
-                            // Takes the response from the JSON request
-                            @Override
-                            public void onResponse(JSONArray response) {
-                                try {
-                                    //JSONObject camera = response.getJSONObject(0);
-                                    //int size = camera.length();
-                                    int i = 0;
-                                    num_cameras = response.length();
-                                    while (i < num_cameras) {
-                                        JSONObject camera = response.getJSONObject(i);
-                                        i++;
+        // -- JSON RESP PARSING HERE -- //
 
-                                        String description = camera.getString("description");
-                                        String camera_type = camera.getString("camera_type");
-                                        int camera_id = camera.getInt("camera_id");
-                                        double latitude = camera.getDouble("lat");
-                                        double longitude = camera.getDouble("lng");
-                                        String formatted_address = getFormattedAddress(latitude, longitude);
-                                        String source_url = camera.getString("source_url");
-                                        String country = camera.getString("country");
-                                        String city = camera.getString("city");
+        // ---- OBTAINING TOKENS ---- //
 
-                            /* create new Camera object */
-                                        camera_obj = new Camera(camera_id);
-                                        camera_obj.des(description);
-                                        camera_obj.cam_type(camera_type);
-                                        camera_obj.lat(latitude);
-                                        camera_obj.lng(longitude);
-                                        camera_obj.cam_address(formatted_address);
-                                        camera_obj.cam_url(source_url);
-                                        camera_obj.cam_country(country);
-                                        camera_obj.cam_city(city);
-                                        cam_objects.add(i - 1, camera_obj); // add the camera object to the list
-                                    }
-                                }
-                                // Try and catch are included to handle any errors due to JSON
-                                catch (JSONException e) {
-                                    // If an error occurs, this prints the error to the log
-                                    e.printStackTrace();
-                                }
-                            }
-                        },
-                        // The final parameter overrides the method onErrorResponse() and passes VolleyError
-                        //as a parameter
-                        new Response.ErrorListener() {
-                            @Override
-                            // Handles errors that occur due to Volley
-                            public void onErrorResponse(VolleyError error) {
-                                Log.e("Volley", "Error");
-                            }
-                        }
-                );
+
+        // ---- DONE OBTAINING TOKENS ---- //
+
+
+        // -- END JSON RESP PARSING HERE -- //
+
         // Adds the JSON object request "obreq" to the request queue
-        requestQueue.add(arrayreq);
+        //requestQueue.add(cam_arrayreq);
         Log.d(TAG, "onCreate: hardcoding a camera");
+
+
+        /*
         //hardcoding for demo
         String formatted_addressk = null;
         try {
@@ -285,7 +258,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             e.printStackTrace();
         }
         hard = new Camera( 3);
-        hard.des("Las Vegas Strip: The Stratosphere");
+        //hard.des("Las Vegas Strip: The Stratosphere");
         hard.cam_type("IP");
         hard.lat(36.1451);
         hard.lng(-115.155);
@@ -345,9 +318,63 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         hard.cam_url("https://www.earthcam.com/usa/california/losangeles/hollywoodblvd/?cam=hollywoodblvd");
         cam_objects.add(5,hard);
+        */
 
         //end of hardcoding
 
+
+        // -- Obtain new auth token -- //
+
+        /*
+        URL temp_url = null;
+        try {
+            temp_url = new URL("https://cam2-api.herokuapp.com/auth?clientID=5804518549e100481b100ac0fdfff756177ffd266fe181b6df02744ec2f0fe31befc6c67f93c844aaac3e05cce1f9087&clientSecret=b3f3eec2d6805dd2c6003003a938c068ba9ca6d5eca7cbaf258bfe18aaf989272423de536a356b32f7b48c6b6d89a460");
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+        HttpURLConnection urlConnection = null;
+        try {
+            urlConnection = (HttpURLConnection) temp_url.openConnection();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            // Use Java JSON Parsing to Extract Token -- //
+            InputStream in = new BufferedInputStream(urlConnection.getInputStream());
+            //String temp = readStream(in);
+            JSONObject resp = new JSONObject(readStream(in));
+            //String pageName = resp.getJSONObject("pageInfo").getString("pageName");
+            //Log.d("page_name", pageName);
+            JSONArray arr = resp.getJSONArray("token");
+
+            for (int i = 0; i < arr.length(); i++)
+            {
+                String post_id = arr.getJSONObject(i).getString("token");
+                Log.d("TEST1", post_id);
+            }
+            Log.d("worked", "Complete");
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } finally {
+            urlConnection.disconnect();
+        }
+        */
+        // Use Java JSON Parsing to Extract Token -- //
+
+    }
+
+    // -- Handle HTML GET Requests -- //
+    public String readStream(InputStream in) throws IOException {
+        BufferedReader r = new BufferedReader(new InputStreamReader(in));
+        StringBuilder total = new StringBuilder();
+        String line;
+        while ((line = r.readLine()) != null) {
+            total.append(line).append('\n');
+        }
+        Log.d("DATA", total.toString());
+        return(total.toString());
     }
 
 
@@ -438,10 +465,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         if (mGoogleApiClient == null) {
                             buildGoogleApiClient();
                         }
-                        mMap.setMyLocationEnabled(true);
+                        //mMap.setMyLocationEnabled(true);
                         mMap.setOnMyLocationClickListener(this); //Enable clicking on the blue dot for your location
                         mMap.setOnMyLocationButtonClickListener(this); //Enable listener to handle clicks of the My Location button
-                        mUiSettings.setCompassEnabled(true); //Allowing the Google API compass to be used
+                        //mUiSettings.setCompassEnabled(false); //Allowing the Google API compass to be used
                         mUiSettings.setZoomControlsEnabled(true); //Enabling the zoom in and zoom out functionality
                     }
 
@@ -467,19 +494,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Manifest.permission.ACCESS_FINE_LOCATION)
                     == PackageManager.PERMISSION_GRANTED) {
                 buildGoogleApiClient(); //Build the Google API
-                mMap.setMyLocationEnabled(true); //Enable the My location button
+                //mMap.setMyLocationEnabled(true); //Enable the My location button
                 mMap.setOnMyLocationClickListener(this); //Enable clicking on the blue dot for your location
                 mMap.setOnMyLocationButtonClickListener(this); //Enable listener to handle clicks of the My Location button
-                mUiSettings.setCompassEnabled(true); //Allowing the Google API compass to be used
+                //mUiSettings.setCompassEnabled(true); //Allowing the Google API compass to be used
                 mUiSettings.setZoomControlsEnabled(true); //Enabling the zoom in and zoom out functionality
             }
         }
         else { //Permission was already granted.
             buildGoogleApiClient();
-            mMap.setMyLocationEnabled(true);
+            //mMap.setMyLocationEnabled(true);
             mMap.setOnMyLocationClickListener(this);
             mMap.setOnMyLocationButtonClickListener(this);
-            mUiSettings.setCompassEnabled(true);
+            //mUiSettings.setCompassEnabled(true);
             mUiSettings.setZoomControlsEnabled(true);
 
         }
@@ -531,17 +558,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             }
         });
-       /* button to plot cameras or hide them*/
+
+        /* button to plot cameras or hide them*/
         final ToggleButton cameras = (ToggleButton) findViewById(R.id.camera_button);
         cameras.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean check) {
+                //cam_update();
                 if (check)
                 {
                     Toast.makeText(getApplicationContext(),"Cameras now showing", Toast.LENGTH_SHORT);
                     //TODO: Insure plotting cameras work
                     Log.d(TAG, "onCheckedChanged: Plotting cameras");
-                    plot_cameras();
+                    //cam_update();
+                    //plot_cameras();
+                    token_req();
                 }
                 else
                 {
@@ -827,8 +858,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public void plot_cameras(){
-        for(int i = 0; i < num_cameras; i++) {
-            Log.d(TAG, "plot_cameras: plotting camera "+i);
+        for(int i = 0; i < curr_max_cams; i++) {
+            //Log.d(TAG, "plot_cameras: plotting camera "+i);
             Camera curr_camera = cam_objects.get(i);
             double lat = curr_camera.latitude;
             double lng = curr_camera.longitude;
@@ -844,7 +875,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .icon(BitmapDescriptorFactory.fromBitmap(custom_marker))
                     .alpha(0.9f);
             camera_marker = mMap.addMarker(a);
-            camera_marker.setTitle(curr_camera.description);
+            //camera_marker.setTitle(curr_camera.description);
             camera_marker.setTag("cam");
             camera_marker.setSnippet(""+i);
             cam_markers.add(camera_marker);
@@ -855,6 +886,149 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             cam_markers.get(i).remove();
         }
         cam_markers.removeAll(cam_markers);
+    }
+
+    //// -- REQUEST NEW TOKEN -- ////
+    // Sets master_token with new token val
+    public void token_req() {
+        final Context token_con = getApplicationContext();
+        JsonObjectRequest objreq = new JsonObjectRequest(Request.Method.GET, JsonURL_token,
+                // The second parameter Listener overrides the method onResponse() and passes
+                //JSONArray as a parameter
+                new Response.Listener<JSONObject>() {
+
+                    // Takes the response from the JSON request
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            master_token = response.getString("token");
+                            Log.d("MASTER_TOKEN", master_token);
+                            if(first_run){
+                                Toast.makeText(token_con,"Downloading Camera Database. Please Wait....",Toast.LENGTH_LONG).show();
+                                first_run = false;
+                            }
+                            else{
+                                Toast.makeText(token_con,"Updating local Cams. Please Wait....",Toast.LENGTH_LONG).show();
+                            }
+                            cam_update(master_token, "");
+                            cam_update(master_token, "&offset=100");
+                            cam_update(master_token, "&offset=200");
+                            cam_update(master_token, "&offset=300");
+                        } catch (JSONException e1) {
+                            e1.printStackTrace();
+                        }
+                    }
+
+                },
+                // The final parameter overrides the method onErrorResponse() and passes VolleyError
+                // as a parameter
+                new Response.ErrorListener() {
+                    @Override
+                    // Handles errors that occur due to Volley
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e("Volley", "Error with Token");
+                        String body = error.getMessage();
+                        Log.e("Volley_error", body);
+                    }
+                }
+        );
+        requestQueue.add(objreq);
+    }
+
+
+
+    //// -- Update Cameras -- ////
+    // Updates the list of camera objects
+    public void cam_update(String token, String offset) {
+        //token_req();
+        String search_url = base_URL + "cameras/search?access_token=" + token + offset;
+        JsonArrayRequest cam_arrayreq = new JsonArrayRequest(Request.Method.GET, search_url,
+                // The second parameter Listener overrides the method onResponse() and passes
+                //JSONArray as a parameter
+                new Response.Listener<JSONArray>() {
+
+                    // Takes the response from the JSON request
+                    @Override
+                    public void onResponse(JSONArray response) {
+                        try {
+                            cam_obj_gen(response);
+                            plot_cameras();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                },
+                // The final parameter overrides the method onErrorResponse() and passes VolleyError
+                //as a parameter
+                new Response.ErrorListener() {
+                    @Override
+                    // Handles errors that occur due to Volley
+                    public void onErrorResponse(VolleyError error) {
+                        Log.e("Volley", "Error");
+                    }
+                }
+        );
+        requestQueue.add(cam_arrayreq);
+    }
+
+
+    public void cam_obj_gen(JSONArray response) throws JSONException {
+        //JSONObject camera = response.getJSONObject(0);
+        //int size = camera.length();
+        int i = 0;
+        num_cameras = response.length();
+        String temp = Integer.toString(num_cameras);
+        Log.d("UPDATE", "camera updating");
+        Log.d("UPDATE_MAS",master_token);
+        Log.d("UPDATE_NUM",temp);
+        int j = 0;
+        while (i < num_cameras) {
+            JSONObject camera = response.getJSONObject(i);
+            i++;
+            if (!(camera.getString("reference_url").equals("null"))) {
+                cam_exists = false;
+                int q = 0;
+                int camera_id = camera.getInt("cameraID");
+                if (!first_run) {
+                    while (q < curr_max_cams) { //loop through all cams in the current array
+                        if (cam_objects.get(q).camera_id == camera_id) {
+                            //Log.d("CHECKER", "Camera already exists");
+                            cam_exists = true;
+                            break;
+                        }
+                        q++;
+                    }
+                    if (cam_exists == false) {
+                        //Log.d("URL_TYPE", camera.getString("reference_url"));
+                        //String description = camera.getString("description");
+                        //String camera_type = camera.getString("type");
+                        //int camera_id = camera.getInt("cameraID");
+                        double latitude = camera.getDouble("latitude");
+                        double longitude = camera.getDouble("longitude");
+                        String formatted_address = getFormattedAddress(latitude, longitude);
+                        String source_url = camera.getString("reference_url");
+                        //String country = camera.getString("country");
+                        //String city = camera.getString("city");
+
+                        // create new Camera object //
+                        camera_obj = new Camera(camera_id);
+                        //camera_obj.des(description);
+                        //camera_obj.cam_type(camera_type);
+                        camera_obj.lat(latitude);
+                        camera_obj.lng(longitude);
+                        camera_obj.cam_address(formatted_address);
+                        camera_obj.cam_url(source_url);
+                        //camera_obj.cam_country(country);
+                        //camera_obj.cam_city(city);
+                        //cam_objects.add(i - 1, camera_obj); // add the camera object to the list
+                        cam_objects.add(curr_max_cams, camera_obj); // add the camera object to the list
+                        curr_max_cams++; //camera is valid so increase num var
+                    }
+
+                }
+            }
+            //Log.d("UPDATE_COMPLETE", "done");
+        }
     }
 
     ///////////////////////Navigation menu handler. Allowing various clicks.///////////////////////
@@ -923,7 +1097,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.position(latLng);
         markerOptions.title("Current Position");
-        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA));
+        Context context = getApplicationContext();
+        Bitmap temp = BitmapFactory.decodeResource(context.getResources(),//TURN THE DRAWABLE ICON INTO A BITMAP
+                R.drawable.user_location);
+        Bitmap custom_marker = Bitmap.createScaledBitmap(temp, 80, 80, true);
+        markerOptions.icon(BitmapDescriptorFactory.fromBitmap(custom_marker));
+
         mCurrLocationMarker = mMap.addMarker(markerOptions);
 
         //move map camera
