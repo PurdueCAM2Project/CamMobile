@@ -101,6 +101,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.Volley;
+import android.os.AsyncTask;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
@@ -167,6 +168,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     boolean cam_exists = false; //Camera array flag
     boolean first_run = true;
 
+    // -- Direction Updating -- //
+    boolean directions_on = false;
+    //List<LatLng> points = new ArrayList<LatLng>();
+    Polyline polyline;
+    List<LatLng> points;
 
 
     @Override
@@ -503,7 +509,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         else { //Permission was already granted.
             buildGoogleApiClient();
-            //mMap.setMyLocationEnabled(true);
+            mMap.setMyLocationEnabled(true);
             mMap.setOnMyLocationClickListener(this);
             mMap.setOnMyLocationButtonClickListener(this);
             //mUiSettings.setCompassEnabled(true);
@@ -519,6 +525,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // The toggle is enabled
                     if (query && (!search_marker_hidden_flag)) { //if the user has already searched a location
+                        directions_on = true;
                         Log.d(TAG, "onCheckedChanged: toggle is on");
                         addPolyline(curr_lat_lng, search_latLng);
                         Context things = getApplicationContext();
@@ -527,6 +534,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
                     } else if (connected == false) { //else if the user's location is not detected
+                        directions_on = false;
                         Context context = getApplicationContext();
                         CharSequence text = "Route cannot be planned until your current location is known.";
                         int duration = Toast.LENGTH_SHORT;
@@ -535,6 +543,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         toast.show();
                         destination_plan.setChecked(false); //reset toggle
                     } else { //else the user hasn't searched anything yet
+                        directions_on = false;
                         Context context = getApplicationContext();
                         CharSequence text = "Search a location to plan a route.";
                         int duration = Toast.LENGTH_SHORT;
@@ -545,6 +554,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     }
                 } else {
                     // The toggle is disabled
+                    directions_on = false;
                     erasePolylines();
                     if (query && (route != null)) {
                         route.remove();
@@ -573,6 +583,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     //cam_update();
                     //plot_cameras();
                     token_req();
+                    //new TestTask().execute();
                 }
                 else
                 {
@@ -646,7 +657,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         // Initializing proper UI settings
         mUiSettings = mMap.getUiSettings();
         mUiSettings.setZoomControlsEnabled(true);
-        mUiSettings.setCompassEnabled(true);
+        mUiSettings.setCompassEnabled(false);
+        //mMap.setMyLocationEnabled(true);
         ///////////////////////Todo: Not sure if you want to keep that marker, because Google's default marker is easier to handle and change///////////////////////
         /*MARKER INITIALIZATION*/
 
@@ -690,6 +702,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     //create latlng class
                     Log.d(TAG, "onLocationChanged: setting current latitude and longitude");
                     curr_lat_lng = new LatLng(latitude, longitude);
+                    if(directions_on) {
+                        //addPolyline(curr_lat_lng, search_latLng);
+                        //erasePolylines();
+
+                        // -- Update Polylines -- //
+                        points = polyline.getPoints();
+                        points.remove(0);
+                        points.add(0, curr_lat_lng);
+                        polyline.setPoints(points);
+                        //Log.d("POINTS",points.toString());
+
+                    }
                     Geocoder geocoder = new Geocoder(getApplicationContext());
                     try {
                         List<Address> addressList = geocoder.getFromLocation(latitude, longitude, 1);
@@ -701,7 +725,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     if (hide_route_flag && mCurrLocationMarker != null) {
                         mCurrLocationMarker.setAlpha(0.0f);
                     } else if(mCurrLocationMarker != null) {
-                        mCurrLocationMarker.setAlpha(1.0f);
+                        //mCurrLocationMarker.setAlpha(1.0f);
+                        mCurrLocationMarker.setAlpha(0.0f);
                     }
                 }
 
@@ -730,6 +755,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     //create latlng class
                     LatLng latLng = new LatLng(latitude, longitude);
                     Geocoder geocoder = new Geocoder(getApplicationContext());
+                    curr_lat_lng = new LatLng(latitude, longitude);
+                    if(directions_on) {
+                        //addPolyline(curr_lat_lng, search_latLng);
+                        //erasePolylines();
+
+                        // -- Update Polylines -- //
+                        points = polyline.getPoints();
+                        points.remove(0);
+                        points.add(0, curr_lat_lng);
+                        polyline.setPoints(points);
+                        //Log.d("POINTS",points.toString());
+
+                    }
                     try {
                         List<Address> addressList = geocoder.getFromLocation(latitude, longitude, 1);
                         curr_location = addressList.get(0).getAddressLine(0);
@@ -803,7 +841,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 return false;
             }
         });
-
 
     }
 
@@ -890,6 +927,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     //// -- REQUEST NEW TOKEN -- ////
     // Sets master_token with new token val
+
     public void token_req() {
         final Context token_con = getApplicationContext();
         JsonObjectRequest objreq = new JsonObjectRequest(Request.Method.GET, JsonURL_token,
@@ -956,6 +994,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
+                        //new TestTask().execute(response);
                     }
                 },
                 // The final parameter overrides the method onErrorResponse() and passes VolleyError
@@ -1167,7 +1206,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             polyOptions.color(getResources().getColor(COLORS[colorIndex]));
             polyOptions.width(10 + i * 3);
             polyOptions.addAll(route.get(i).getPoints());
-            Polyline polyline = mMap.addPolyline(polyOptions);
+            polyline = mMap.addPolyline(polyOptions);
             polylines.add(polyline);
 
             //Toast.makeText(getApplicationContext(),"Route "+ (i+1) +": distance - "+ route.get(i).getDistanceValue()+": duration - "+ route.get(i).getDurationValue(),Toast.LENGTH_SHORT).show();
@@ -1192,4 +1231,73 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.openDrawer(GravityCompat.START);
     }
+
+    /*
+    private class TestTask extends AsyncTask<JSONArray, Void, String> {
+
+        @Override
+        protected String doInBackground(JSONArray... params) {
+            //token_req();
+            final Context token_con = getApplicationContext();
+            JsonObjectRequest objreq = new JsonObjectRequest(Request.Method.GET, JsonURL_token,
+                    // The second parameter Listener overrides the method onResponse() and passes
+                    //JSONArray as a parameter
+                    new Response.Listener<JSONObject>() {
+
+                        // Takes the response from the JSON request
+                        @Override
+                        public void onResponse(JSONObject response) {
+                            try {
+                                master_token = response.getString("token");
+                                Log.d("MASTER_TOKEN", master_token);
+                                if(first_run){
+                                    Toast.makeText(token_con,"Downloading Camera Database. Please Wait....",Toast.LENGTH_LONG).show();
+                                    first_run = false;
+                                }
+                                else{
+                                    Toast.makeText(token_con,"Updating local Cams. Please Wait....",Toast.LENGTH_LONG).show();
+                                }
+                                cam_update(master_token, "");
+                                cam_update(master_token, "&offset=100");
+                                cam_update(master_token, "&offset=200");
+                                cam_update(master_token, "&offset=300");
+                            } catch (JSONException e1) {
+                                e1.printStackTrace();
+                            }
+                        }
+
+                    },
+                    // The final parameter overrides the method onErrorResponse() and passes VolleyError
+                    // as a parameter
+                    new Response.ErrorListener() {
+                        @Override
+                        // Handles errors that occur due to Volley
+                        public void onErrorResponse(VolleyError error) {
+                            Log.e("Volley", "Error with Token");
+                            String body = error.getMessage();
+                            Log.e("Volley_error", body);
+                        }
+                    }
+            );
+            requestQueue.add(objreq);
+
+
+            return("Complete");
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            //plot_cameras();
+            Context test = getApplicationContext();
+            Toast.makeText(test,"Finished maybe.",Toast.LENGTH_LONG).show();
+
+        }
+
+        @Override
+        protected void onPreExecute() {}
+
+        @Override
+        protected void onProgressUpdate(Void... values) {}
+    }
+    */
 }

@@ -25,7 +25,7 @@
 
     <ToggleButton
         android:id="@+id/camera_button"
-        android:layout_width="57dp"
+        android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_marginBottom="16dp"
         android:layout_marginTop="8dp"
@@ -75,7 +75,7 @@
         android:id="@+id/map_options"
         android:layout_width="63dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="244dp"
+        android:layout_marginBottom="260dp"
         android:background="@android:drawable/ic_menu_mapmode"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
