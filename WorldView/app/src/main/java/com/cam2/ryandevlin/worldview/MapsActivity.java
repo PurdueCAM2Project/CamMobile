@@ -471,7 +471,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         if (mGoogleApiClient == null) {
                             buildGoogleApiClient();
                         }
-                        //mMap.setMyLocationEnabled(true);
+                        mMap.setMyLocationEnabled(true);
                         mMap.setOnMyLocationClickListener(this); //Enable clicking on the blue dot for your location
                         mMap.setOnMyLocationButtonClickListener(this); //Enable listener to handle clicks of the My Location button
                         //mUiSettings.setCompassEnabled(false); //Allowing the Google API compass to be used
@@ -500,7 +500,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Manifest.permission.ACCESS_FINE_LOCATION)
                     == PackageManager.PERMISSION_GRANTED) {
                 buildGoogleApiClient(); //Build the Google API
-                //mMap.setMyLocationEnabled(true); //Enable the My location button
+                mMap.setMyLocationEnabled(true); //Enable the My location button
                 mMap.setOnMyLocationClickListener(this); //Enable clicking on the blue dot for your location
                 mMap.setOnMyLocationButtonClickListener(this); //Enable listener to handle clicks of the My Location button
                 //mUiSettings.setCompassEnabled(true); //Allowing the Google API compass to be used
