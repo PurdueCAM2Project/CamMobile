@@ -1,12 +1,18 @@
 package com.cam2.ryandevlin.worldview;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -26,7 +32,8 @@ public class Camera_List extends AppCompatActivity {
     private ArrayAdapter adapter;
     ArrayList<Camera> filtered_cams = new ArrayList<Camera>();
     ListView list = null;
-
+    Context con = this;
+    private ActionBar mToggle;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -41,6 +48,8 @@ public class Camera_List extends AppCompatActivity {
         adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, newcam);
         list.setAdapter(adapter);
         final int camlength = newcam.size();
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeButtonEnabled(true);
 
 
         theFilter.addTextChangedListener(new TextWatcher() {
@@ -79,5 +88,15 @@ public class Camera_List extends AppCompatActivity {
 
 
 
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()){
+            case android.R.id.home:
+                onBackPressed();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 }
