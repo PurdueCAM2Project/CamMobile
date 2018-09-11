@@ -9,7 +9,7 @@ import java.io.Serializable;
 public class Camera implements Serializable{
     //String description;
     //String camera_type;
-    int camera_id;
+    String camera_id;
     double latitude;
     double longitude;
     String source_url;
@@ -18,7 +18,7 @@ public class Camera implements Serializable{
     String address;
 
     //constructor for Camera class
-    public Camera(int id){
+    public Camera(String id){
         this.camera_id = id;
     }
     //public void des(String des){

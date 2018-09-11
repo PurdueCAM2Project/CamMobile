@@ -50,6 +50,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.model.MapStyleOptions;
 
 import android.location.Address;
 
@@ -173,6 +174,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     //List<LatLng> points = new ArrayList<LatLng>();
     Polyline polyline;
     List<LatLng> points;
+
+    boolean flip = true;
 
 
     @Override
@@ -1027,7 +1030,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (!(camera.getString("reference_url").equals("null"))) {
                 cam_exists = false;
                 int q = 0;
-                int camera_id = camera.getInt("cameraID");
+                String camera_id = camera.getString("cameraID"); ////////////////////////////////////////
                 if (!first_run) {
                     while (q < curr_max_cams) { //loop through all cams in the current array
                         if (cam_objects.get(q).camera_id == camera_id) {
@@ -1086,6 +1089,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             b.putSerializable("cameras", cam_objects);
             i.putExtras(b);
             startActivity(i);
+        }
+        else if (id == R.id.nav_settings)
+        {
+            // Search Camera Function
+            if(flip) {
+                mMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.night_mode));
+                flip = false;
+            }else{
+                mMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.standard));
+            }
         }
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);

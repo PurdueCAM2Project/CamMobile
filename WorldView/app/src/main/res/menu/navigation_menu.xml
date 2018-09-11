@@ -22,6 +22,6 @@
         <item
             android:id="@+id/import_google"
             android:icon="@drawable/common_google_signin_btn_icon_light"
-            android:title="Import Google Places " />
+            android:title="Connect With Google+ " />
     </group>
 </menu>
