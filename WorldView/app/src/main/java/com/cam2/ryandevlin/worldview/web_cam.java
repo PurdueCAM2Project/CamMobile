@@ -15,19 +15,16 @@ import android.webkit.WebViewClient;
  */
 
 public class web_cam extends AppCompatActivity {
+
     private static final String TAG = "Web_cam";
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.web_cam);
-        //get Intent
-        Intent Incomingintent = getIntent();
-        // get URL
-        String weburl = Incomingintent.getStringExtra("source");
-        // Launch Webview
-        WebView webb = (WebView) findViewById(R.id.Web_view);
+        String weburl = getIntent().getStringExtra("source");
+        WebView webb =  findViewById(R.id.Web_view);
         WebSettings webSettings = webb.getSettings();
-        //This setting allows Videoplayer in website to run
         webSettings.setJavaScriptEnabled(true);
         webSettings.setUseWideViewPort(true);
         webb.setWebViewClient(new WebViewClient());

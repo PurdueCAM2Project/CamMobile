@@ -7,46 +7,74 @@ import java.io.Serializable;
  */
 
 public class Camera implements Serializable{
-    //String description;
-    //String camera_type;
-    String camera_id;
+
+    //GLOBAL VARIABLES
     double latitude;
     double longitude;
-    String source_url;
-    //String country;
-    //String city;
+    String cameraID;
+    String sourceURL;
     String address;
 
-    //constructor for Camera class
+    /**
+     * Constructor to create a Camera Object
+     * @param id
+     */
     public Camera(String id){
-        this.camera_id = id;
+        this.cameraID = id;
     }
-    //public void des(String des){
-      //  description = des;
-    //}
-    //public void cam_type(String cam_type){
-      //  camera_type = cam_type;
-    //}
-    public void lat(double lat){
+
+    /**
+     * Constructor to create a Camera Object
+     * @param id
+     * @param lat
+     * @param lng
+     * @param address
+     * @param url
+     */
+    public Camera(String id, double lat, double lng, String address, String url){
+        this.cameraID = id;
+        this.latitude = lat;
+        this.longitude = lng;
+        this.address = address;
+        this.sourceURL = url;
+    }
+
+    /**
+     * Setting method for latitude coordinates
+     * @param lat
+     */
+    public void setLatitude(double lat){
         latitude = lat;
     }
-    public void lng(double lng){
+
+    /**
+     * Setting method for longitude coordinates
+     * @param lng
+     */
+    public void setLongitude(double lng){
         longitude = lng;
     }
-    // cam_address holds formatted address of the camera location.
-    public void cam_address(String cam_address){
-        address=cam_address;
-    }
-    public void cam_url(String cam_url){
-        source_url = cam_url;
-    }
-    //public void cam_country(String cam_country){
-      //  country = cam_country;
-    //}
-    //public void cam_city(String cam_city){
-      //  city = cam_city;
-    //}
 
+    /**
+     * Setting method for camera's address
+     * @param cam_address
+     */
+    public void setCameraAddress(String cam_address){
+        address = cam_address;
+    }
+
+    /**
+     * Setting method for camera's url
+     * @param cam_url
+     */
+    public void setCameraUrl(String cam_url){
+        sourceURL = cam_url;
+    }
+
+    /**
+     * Returns a string representation of the object
+     * @return  string representation of the object
+     */
     @Override
     public String toString() {
         return this.address;

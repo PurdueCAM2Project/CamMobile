@@ -17,6 +17,12 @@ import org.json.JSONObject;
  * it takes in a URL which returns a JSON object and collects the JSON object.
  */
 public class JsonReader extends AsyncTask {
+
+    /**
+     * Method that returns a string representation of the reader
+     * @param rd
+     * @return string representation
+     */
     private static String readAll(Reader rd) throws IOException {
         StringBuilder sb = new StringBuilder();
         int cp;
@@ -26,6 +32,11 @@ public class JsonReader extends AsyncTask {
         return sb.toString();
     }
 
+    /**
+     * Returns a json object of the given url
+     * @param url
+     * @return json object of url
+     */
     public static JSONObject readJsonFromUrl(String url) throws IOException, JSONException {
         InputStream is = new URL(url).openStream();
         try {
@@ -38,6 +49,11 @@ public class JsonReader extends AsyncTask {
         }
     }
 
+    /**
+     * Required method for AsyncTask
+     * @param objects
+     * @return null
+     */
     @Override
     protected Object doInBackground(Object[] objects) {
         return null;
