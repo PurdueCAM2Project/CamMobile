@@ -104,6 +104,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     boolean query = false;
 
     List<Marker> markers = new ArrayList<Marker>();
+    public Marker customMarker;
 
     public Polyline route = null;
     boolean hide_route_flag = false;
@@ -513,6 +514,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     startActivity(intent);
                 }
                 return false;
+            }
+        });
+        mMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
+            @Override
+            public void onMapLongClick(LatLng latLng)
+            {
+                if (customMarker == null)
+                {
+                    customMarker = mMap.addMarker(new MarkerOptions().position(latLng).title("Custom Marker"));
+                    customMarker.setTag(0);
+                }
+                else
+                {
+                    customMarker.remove();
+                    customMarker = mMap.addMarker(new MarkerOptions().position(latLng).title("Custom Marker"));
+                    customMarker.setTag(0);
+                }
+
             }
         });
 
