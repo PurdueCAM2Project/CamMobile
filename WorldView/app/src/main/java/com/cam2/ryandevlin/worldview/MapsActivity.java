@@ -28,6 +28,8 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -105,6 +107,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     List<Marker> markers = new ArrayList<Marker>();
     public Marker customMarker;
+    public Circle mileCircle;
 
     public Polyline route = null;
     boolean hide_route_flag = false;
@@ -172,6 +175,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                                     popup.show();
                                                   }
                                               });
+        //mileCircle.setClickable(true);
     }
 
     /**
@@ -534,7 +538,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             }
         });
-
+        mMap.setOnCircleClickListener(new GoogleMap.OnCircleClickListener() {
+            @Override
+            public void onCircleClick(Circle circle) {
+                circle.remove();
+            }
+        });
     }
 
     /**
@@ -666,8 +675,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * @param location
      */
     @Override
-    public void onMyLocationClick(@NonNull Location location){
-        Toast.makeText(this, "Current location:\n" + location, Toast.LENGTH_LONG).show();
+    public void onMyLocationClick(@NonNull Location location)
+    {
+        if (mileCircle == null)
+        {
+            mileCircle = mMap.addCircle(new CircleOptions().center(curr_lat_lng).radius(160934).strokeColor(Color.RED));
+            mileCircle.setClickable(true);
+        }
+        else
+        {
+            mileCircle.remove();
+            mileCircle = mMap.addCircle(new CircleOptions().center(curr_lat_lng).radius(160934).strokeColor(Color.RED));
+            mileCircle.setClickable(true);
+        }
+        Toast.makeText(this,"Raidus created. 100 miles",Toast.LENGTH_SHORT).show();
+
     }
 
     /**
@@ -718,5 +740,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         drawer.openDrawer(GravityCompat.START);
     }
+
 
 }
