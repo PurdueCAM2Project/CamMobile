@@ -26,7 +26,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Hashtable;
 
 /**
  * Class to manage interactions with the camera database
@@ -36,13 +36,23 @@ import java.util.List;
 public class CameraDatabaseClient {
 
     //GLOBAL VARIABLES
-    String masterToken = new String();
-    String baseUrl = "https://cam2-api.herokuapp.com/";
-    String jsonUrlToken = "https://cam2-api.herokuapp.com/auth?clientID=5804518549e100481b100ac0fdfff756177ffd266fe181b6df02744ec2f0fe31befc6c67f93c844aaac3e05cce1f9087&clientSecret=b3f3eec2d6805dd2c6003003a938c068ba9ca6d5eca7cbaf258bfe18aaf989272423de536a356b32f7b48c6b6d89a460";
-    List <Camera> cameraList = new ArrayList<>();
-    List <Marker> cameraMarkers = new ArrayList<>();
-    boolean firstRun = true;
-    int maxCameras = 0;
+    String masterToken;
+    String baseUrl ;
+    String jsonUrlToken;
+    Hashtable<String,Camera> cameraObjects;
+    List <Marker> cameraMarkers;
+    boolean firstRun;
+    int maxCameras;
+
+    public CameraDatabaseClient(){
+        this.masterToken = new String();
+        this.baseUrl = "https://cam2-api.herokuapp.com/";
+        this.jsonUrlToken = "https://cam2-api.herokuapp.com/auth?clientID=5804518549e100481b100ac0fdfff756177ffd266fe181b6df02744ec2f0fe31befc6c67f93c844aaac3e05cce1f9087&clientSecret=b3f3eec2d6805dd2c6003003a938c068ba9ca6d5eca7cbaf258bfe18aaf989272423de536a356b32f7b48c6b6d89a460";
+        this.cameraObjects = new Hashtable<>();
+        this.cameraMarkers = new ArrayList<>();
+        this.firstRun= true;
+        this.maxCameras = 0;
+    }
 
 
     /**
@@ -50,7 +60,7 @@ public class CameraDatabaseClient {
      * @return list of all cameras
      */
     public List<Camera> getCameras() {
-        return cameraList;
+        return new ArrayList<>(this.cameraObjects.values());
     }
 
     /**
@@ -58,11 +68,11 @@ public class CameraDatabaseClient {
      * @return list of the camera markers
      */
     public List<Marker> hideAllCameraMarkers(){
-        for(int i=0;i<cameraMarkers.size();i++) {
-            cameraMarkers.get(i).remove();
+        for(int i=0;i<this.cameraMarkers.size();i++) {
+            this.cameraMarkers.get(i).remove();
         }
-        cameraMarkers.removeAll(cameraMarkers);
-        return cameraMarkers;
+        this.cameraMarkers.removeAll(cameraMarkers);
+        return this.cameraMarkers;
     }
 
     /**
@@ -73,29 +83,28 @@ public class CameraDatabaseClient {
      * @param context
      * @param map
      */
-    public void initializeCameras (final RequestQueue queue, final Context context,   final GoogleMap map) {
+    public void initializeCameras (final RequestQueue queue, final Context context, final GoogleMap map, final LatLng coordinates) {
         JsonObjectRequest objReq = new JsonObjectRequest(Request.Method.GET, jsonUrlToken, new Response.Listener<JSONObject>() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        try {
-                            masterToken = response.getString("token");
-                            Log.d("MASTER_TOKEN", masterToken);
-                            if(firstRun){
-                                Toast.makeText(context,"Downloading Camera Database. Please Wait....",Toast.LENGTH_LONG).show();
-                                firstRun = false;
-                            }
-                            else{
-                                Toast.makeText(context,"Updating local Cams. Please Wait....",Toast.LENGTH_LONG).show();
-                            }
-                            updateCameraList(masterToken, "", queue, context, map);
-                            updateCameraList(masterToken, "&offset=100", queue, context, map);
-                            updateCameraList(masterToken, "&offset=200", queue, context, map);
-                            updateCameraList(masterToken, "&offset=300", queue, context, map);
-                        } catch (JSONException e1) {
-                            e1.printStackTrace();
-                        }
+            @Override
+            public void onResponse(JSONObject response) {
+                try {
+                    masterToken = response.getString("token");
+                    Log.d("MASTER_TOKEN", masterToken);
+                    if(firstRun){
+                        Toast.makeText(context,"Downloading Camera Database. Please Wait....",Toast.LENGTH_LONG).show();
+                        firstRun = false;
                     }
-                },
+                    else{
+                        Toast.makeText(context,"Updating local Cams. Please Wait....",Toast.LENGTH_LONG).show();
+                    }
+                    updateCameraList(masterToken, "&longitude="+coordinates.longitude+"&latitude="+coordinates.latitude+"&radius=100&type=ip", queue, context, map);
+
+
+                } catch (JSONException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        },
                 new Response.ErrorListener() {
                     @Override
                     // Handles errors that occur due to Volley
@@ -122,16 +131,16 @@ public class CameraDatabaseClient {
     public void updateCameraList(String token, String offset, RequestQueue queue, final Context context, final GoogleMap map) {
         String search_url = baseUrl + "cameras/search?access_token=" + token + offset;
         JsonArrayRequest cam_arrayreq = new JsonArrayRequest(Request.Method.GET, search_url,new Response.Listener<JSONArray>() {
-                    @Override
-                    public void onResponse(JSONArray response) {
-                        try {
-                            generateCameraObjects(response);
-                            plotCamerasOnMap(context, map);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                },
+            @Override
+            public void onResponse(JSONArray response) {
+                try {
+                    generateCameraObjects(response);
+                    plotCamerasOnMap(context, map);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
@@ -156,17 +165,15 @@ public class CameraDatabaseClient {
             JSONObject camera = response.getJSONObject(i);
             if (!(camera.getString("reference_url").equals("null"))) {
                 String camera_id = camera.getString("cameraID");
-                for(Camera cam: cameraList){
-                    if(cam.cameraID == camera_id)
-                        return;
+                if (cameraObjects.get(camera_id) == null) {
+                    double latitude = camera.getDouble("latitude");
+                    double longitude = camera.getDouble("longitude");
+                    String formatted_address = getFormattedAddress(latitude, longitude);
+                    String source_url = camera.getString("reference_url");
+                    Camera camera_obj = new Camera(camera_id, latitude, longitude, formatted_address, source_url);
+                    this.cameraObjects.put(camera_obj.cameraID, camera_obj);
+                    maxCameras++;
                 }
-                double latitude = camera.getDouble("latitude");
-                double longitude = camera.getDouble("longitude");
-                String formatted_address = getFormattedAddress(latitude, longitude);
-                String source_url = camera.getString("reference_url");
-                Camera camera_obj = new Camera(camera_id, latitude, longitude,formatted_address, source_url);
-                cameraList.add(maxCameras, camera_obj);
-                maxCameras++;
             }
         }
     }
@@ -177,8 +184,10 @@ public class CameraDatabaseClient {
      * @param context
      */
     public void plotCamerasOnMap(Context context, GoogleMap map){
-        for(int i = 0; i < maxCameras; i++) {
-            Camera curr_camera = cameraList.get(i);
+        List<Camera> cameras = new ArrayList<>(this.cameraObjects.values());
+        Log.d("length", Integer.toString(cameras.size()));
+        for(int i = 0; i < cameras.size(); i++) {
+            Camera curr_camera = cameras.get(i);
             LatLng cam_location = new LatLng(curr_camera.latitude, curr_camera.longitude);
             Bitmap temp = BitmapFactory.decodeResource(context.getResources(),R.drawable.cam_marker);
             Bitmap custom_marker = Bitmap.createScaledBitmap(temp, 60, 100, true); //RESCALE BITMAP ICON TO PROPER SIZE
@@ -188,6 +197,12 @@ public class CameraDatabaseClient {
             camera_marker.setSnippet(""+i);
             cameraMarkers.add(camera_marker);
         }
+    }
+
+
+    public void updateCameras(LatLng coordinates, Context context, GoogleMap mMap,final RequestQueue queue ){
+        Log.d("Current Coordinates ", coordinates.toString());
+        initializeCameras(queue,context,mMap,coordinates);
     }
 
 

@@ -49,7 +49,6 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.MapStyleOptions;
 
 import android.location.Address;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -104,6 +103,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     LatLng search_latLng = new LatLng(0, 0);
 
     boolean query = false;
+    boolean plotCameras = false;
 
     List<Marker> markers = new ArrayList<Marker>();
     public Marker customMarker;
@@ -151,30 +151,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //Button in which will bring up a popup menu for the various map options
         map_options_button =  findViewById(R.id.map_options);
         map_options_button.setOnClickListener(new View.OnClickListener() {
-                                                  @Override
-                                                  public void onClick(View view) {
-                                                      PopupMenu popup = new PopupMenu(MapsActivity.this, map_options_button);
-                                                      popup.getMenuInflater().inflate(R.menu.popup_map_options, popup.getMenu());
-                                                      popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                                                          @Override
-                                                          public boolean onMenuItemClick(MenuItem menuItem)
-                                                          {
-                                                              int item = menuItem.getItemId();
-                                                              if (item == R.id.map_drawn) {
-                                                                  mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-                                                              }
-                                                              else if (item == R.id.map_sat) {
-                                                                  mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
-                                                              }
-                                                              else if (item == R.id.map_hybrid) {
-                                                                  mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
-                                                              }
-                                                              return true;
-                                                          }
-                                                      });
-                                                    popup.show();
-                                                  }
-                                              });
+            @Override
+            public void onClick(View view) {
+                PopupMenu popup = new PopupMenu(MapsActivity.this, map_options_button);
+                popup.getMenuInflater().inflate(R.menu.popup_map_options, popup.getMenu());
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem menuItem)
+                    {
+                        int item = menuItem.getItemId();
+                        if (item == R.id.map_drawn) {
+                            mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                        }
+                        else if (item == R.id.map_sat) {
+                            mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                        }
+                        else if (item == R.id.map_hybrid) {
+                            mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                        }
+                        return true;
+                    }
+                });
+                popup.show();
+            }
+        });
         //mileCircle.setClickable(true);
     }
 
@@ -320,12 +320,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Toast.makeText(getApplicationContext(),"Cameras now showing", Toast.LENGTH_SHORT);
                     //TODO: Insure plotting cameras work
                     Log.d(TAG, "onCheckedChanged: Plotting cameras");
-                    cameraDatabaseClient.initializeCameras(requestQueue, getApplicationContext(), mMap);
+                    cameraDatabaseClient.initializeCameras(requestQueue, getApplicationContext(), mMap, curr_lat_lng);
+                    plotCameras = true;
                 }
                 else {
                     Toast.makeText(getApplicationContext(), "Cameras now hidden", Toast.LENGTH_SHORT);
                     //TODO: Insure hiding cameras work
-                   cameraDatabaseClient.hideAllCameraMarkers();
+                    cameraDatabaseClient.hideAllCameraMarkers();
                 }
             }
         });
@@ -413,6 +414,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     //create latlng class
                     Log.d(TAG, "onLocationChanged: setting current latitude and longitude");
                     curr_lat_lng = new LatLng(latitude, longitude);
+                    //  cameraDatabaseClient.updateCameras(curr_lat_lng,getApplicationContext(),mMap,requestQueue);
                     if(directions_on) {
                         // -- Update Polylines -- //
                         points = polyline.getPoints();
@@ -478,7 +480,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 public void onProviderDisabled(String provider) {}
             });
         }
-
+        mMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
+            @Override
+            public void onCameraChange(CameraPosition cameraPosition) {
+                if(plotCameras) {
+                    Log.e("Camera Change", "updating cameras");
+                    cameraDatabaseClient.updateCameras(cameraPosition.target, getApplicationContext(), mMap, requestQueue);
+                }
+            }
+        });
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
@@ -639,8 +649,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mLastLocation = location;
         if (mCurrLocationMarker != null)
             mCurrLocationMarker.remove();
-        //Place current location marker
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+        if (plotCameras)
+            cameraDatabaseClient.updateCameras(latLng,getApplicationContext(), mMap,requestQueue);
         MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.position(latLng);
         markerOptions.title("Current Position");
@@ -650,10 +661,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Bitmap custom_marker = Bitmap.createScaledBitmap(temp, 80, 80, true);
         markerOptions.icon(BitmapDescriptorFactory.fromBitmap(custom_marker));
         mCurrLocationMarker = mMap.addMarker(markerOptions);
-        //move map camera
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
-        //stop location updates
         if (mGoogleApiClient != null)
             LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
     }
@@ -677,13 +686,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMyLocationClick(@NonNull Location location)
     {
-        if (mileCircle == null)
-        {
+        if (mileCircle == null) {
             mileCircle = mMap.addCircle(new CircleOptions().center(curr_lat_lng).radius(160934).strokeColor(Color.RED));
             mileCircle.setClickable(true);
         }
-        else
-        {
+        else {
             mileCircle.remove();
             mileCircle = mMap.addCircle(new CircleOptions().center(curr_lat_lng).radius(160934).strokeColor(Color.RED));
             mileCircle.setClickable(true);
