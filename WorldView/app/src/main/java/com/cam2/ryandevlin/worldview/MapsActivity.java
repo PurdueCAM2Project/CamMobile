@@ -684,20 +684,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * @param location
      */
     @Override
-    public void onMyLocationClick(@NonNull Location location)
-    {
-        if (mileCircle == null) {
-            mileCircle = mMap.addCircle(new CircleOptions().center(curr_lat_lng).radius(160934).strokeColor(Color.RED));
-            mileCircle.setClickable(true);
-        }
-        else {
-            mileCircle.remove();
-            mileCircle = mMap.addCircle(new CircleOptions().center(curr_lat_lng).radius(160934).strokeColor(Color.RED));
-            mileCircle.setClickable(true);
-        }
-        Toast.makeText(this,"Raidus created. 100 miles",Toast.LENGTH_SHORT).show();
-
-    }
+    public void onMyLocationClick(@NonNull Location location) {}
 
     /**
      * When there is a routing error, will send an error message
