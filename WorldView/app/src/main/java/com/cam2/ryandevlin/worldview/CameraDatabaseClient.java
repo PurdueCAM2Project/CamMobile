@@ -83,7 +83,7 @@ public class CameraDatabaseClient {
      * @param context
      * @param map
      */
-    public void initializeCameras (final RequestQueue queue, final Context context, final GoogleMap map, final LatLng coordinates) {
+    public void initializeCameras (final RequestQueue queue, final Context context, final GoogleMap map, final LatLng coordinates, final double radius) {
         JsonObjectRequest objReq = new JsonObjectRequest(Request.Method.GET, jsonUrlToken, new Response.Listener<JSONObject>() {
             @Override
             public void onResponse(JSONObject response) {
@@ -97,7 +97,11 @@ public class CameraDatabaseClient {
                     else{
                         Toast.makeText(context,"Updating local Cams. Please Wait....",Toast.LENGTH_LONG).show();
                     }
-                    updateCameraList(masterToken, "&longitude="+coordinates.longitude+"&latitude="+coordinates.latitude+"&radius=100&type=ip", queue, context, map);
+
+
+                    updateCameraList(masterToken, "&longitude=" + coordinates.longitude +
+                                "&latitude=" + coordinates.latitude + "&radius=" + radius + "&type=ip",
+                                queue, context, map);
 
 
                 } catch (JSONException e1) {
@@ -130,12 +134,13 @@ public class CameraDatabaseClient {
      */
     public void updateCameraList(String token, String offset, RequestQueue queue, final Context context, final GoogleMap map) {
         String search_url = baseUrl + "cameras/search?access_token=" + token + offset;
+
         JsonArrayRequest cam_arrayreq = new JsonArrayRequest(Request.Method.GET, search_url,new Response.Listener<JSONArray>() {
             @Override
             public void onResponse(JSONArray response) {
                 try {
-                    generateCameraObjects(response);
-                    plotCamerasOnMap(context, map);
+                     List<Camera> list = generateCameraObjects(response);
+                    plotCamerasOnMap(context, map, list);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -155,15 +160,17 @@ public class CameraDatabaseClient {
      * From the json response, the method will convert the information into cameras and store them in a list
      * @param  response
      */
-    public void generateCameraObjects(JSONArray response) throws JSONException {
+    public List<Camera> generateCameraObjects(JSONArray response) throws JSONException {
         int num_cameras = response.length();
         String temp = Integer.toString(num_cameras);
         Log.d("UPDATE", "camera updating");
         Log.d("UPDATE_MAS",masterToken);
         Log.d("UPDATE_NUM",temp);
+        List<Camera> temp_list = new ArrayList<>();
         for (int i = 0; i < num_cameras; i++){
             JSONObject camera = response.getJSONObject(i);
             if (!(camera.getString("reference_url").equals("null"))) {
+                Log.d("url" , camera.getString("reference_url"));
                 String camera_id = camera.getString("cameraID");
                 if (cameraObjects.get(camera_id) == null) {
                     double latitude = camera.getDouble("latitude");
@@ -172,10 +179,12 @@ public class CameraDatabaseClient {
                     String source_url = camera.getString("reference_url");
                     Camera camera_obj = new Camera(camera_id, latitude, longitude, formatted_address, source_url);
                     this.cameraObjects.put(camera_obj.cameraID, camera_obj);
+                    temp_list.add(camera_obj);
                     maxCameras++;
                 }
             }
         }
+        return temp_list;
     }
 
     /**
@@ -183,7 +192,7 @@ public class CameraDatabaseClient {
      * @param  map
      * @param context
      */
-    public void plotCamerasOnMap(Context context, GoogleMap map){
+    public void plotCamerasOnMap(Context context, GoogleMap map, List<Camera> list){
         List<Camera> cameras = new ArrayList<>(this.cameraObjects.values());
         Log.d("length", Integer.toString(cameras.size()));
         for(int i = 0; i < cameras.size(); i++) {
@@ -200,9 +209,9 @@ public class CameraDatabaseClient {
     }
 
 
-    public void updateCameras(LatLng coordinates, Context context, GoogleMap mMap,final RequestQueue queue ){
+    public void updateCameras(LatLng coordinates, Context context, GoogleMap mMap,final RequestQueue queue, double radius ){
         Log.d("Current Coordinates ", coordinates.toString());
-        initializeCameras(queue,context,mMap,coordinates);
+        initializeCameras(queue,context,mMap,coordinates, radius);
     }
 
 

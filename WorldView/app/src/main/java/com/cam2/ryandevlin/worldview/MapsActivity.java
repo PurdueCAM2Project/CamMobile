@@ -107,7 +107,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     List<Marker> markers = new ArrayList<Marker>();
     public Marker customMarker;
-    public Circle mileCircle;
 
     public Polyline route = null;
     boolean hide_route_flag = false;
@@ -320,7 +319,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     Toast.makeText(getApplicationContext(),"Cameras now showing", Toast.LENGTH_SHORT);
                     //TODO: Insure plotting cameras work
                     Log.d(TAG, "onCheckedChanged: Plotting cameras");
-                    cameraDatabaseClient.initializeCameras(requestQueue, getApplicationContext(), mMap, curr_lat_lng);
+                    double radius = getAreaInTheScreen(mMap.getProjection().getVisibleRegion().latLngBounds);
+                    cameraDatabaseClient.initializeCameras(requestQueue, getApplicationContext(), mMap, curr_lat_lng, radius*1.5);
                     plotCameras = true;
                 }
                 else {
@@ -480,15 +480,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 public void onProviderDisabled(String provider) {}
             });
         }
-        mMap.setOnCameraChangeListener(new GoogleMap.OnCameraChangeListener() {
-            @Override
-            public void onCameraChange(CameraPosition cameraPosition) {
-                if(plotCameras) {
-                    Log.e("Camera Change", "updating cameras");
-                    cameraDatabaseClient.updateCameras(cameraPosition.target, getApplicationContext(), mMap, requestQueue);
-                }
-            }
-        });
+       mMap.setOnCameraIdleListener(new GoogleMap.OnCameraIdleListener() {
+           @Override
+           public void onCameraIdle() {
+               Log.d("IdleListener", "activated");
+               LatLng location = mMap.getCameraPosition().target;
+               if (plotCameras) {
+                   double radius = getAreaInTheScreen(mMap.getProjection().getVisibleRegion().latLngBounds);
+                   cameraDatabaseClient.updateCameras(location, getApplicationContext(), mMap, requestQueue, radius*1.5);
+               }
+           }
+       });
+
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
@@ -650,8 +653,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (mCurrLocationMarker != null)
             mCurrLocationMarker.remove();
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        if (plotCameras)
-            cameraDatabaseClient.updateCameras(latLng,getApplicationContext(), mMap,requestQueue);
+        if (plotCameras) {
+            double radius = getAreaInTheScreen(mMap.getProjection().getVisibleRegion().latLngBounds);
+            cameraDatabaseClient.updateCameras(latLng, getApplicationContext(), mMap, requestQueue, radius *1.5);
+        }
         MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.position(latLng);
         markerOptions.title("Current Position");
@@ -733,6 +738,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onClick(View view) {
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         drawer.openDrawer(GravityCompat.START);
+    }
+
+    private double getAreaInTheScreen(LatLngBounds bounds) {
+        double northLong=bounds.northeast.longitude;
+        double southLat=bounds.southwest.latitude;
+        double southLong=bounds.southwest.longitude;
+        Location l = new Location("southwest");
+        l.setLatitude(southLat);
+        l.setLongitude(southLong);
+        Location l2 = new Location("southeast");
+        l.setLatitude(southLat);
+        l.setLongitude(northLong);
+        double height = l.distanceTo(l2);
+        return height;
     }
 
 
