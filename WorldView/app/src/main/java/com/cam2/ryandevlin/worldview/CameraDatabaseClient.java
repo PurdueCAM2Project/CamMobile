@@ -170,7 +170,6 @@ public class CameraDatabaseClient {
         for (int i = 0; i < num_cameras; i++){
             JSONObject camera = response.getJSONObject(i);
             if (!(camera.getString("reference_url").equals("null"))) {
-                Log.d("url" , camera.getString("reference_url"));
                 String camera_id = camera.getString("cameraID");
                 if (cameraObjects.get(camera_id) == null) {
                     double latitude = camera.getDouble("latitude");

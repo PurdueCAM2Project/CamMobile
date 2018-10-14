@@ -29,7 +29,6 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.Circle;
-import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -320,7 +319,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     //TODO: Insure plotting cameras work
                     Log.d(TAG, "onCheckedChanged: Plotting cameras");
                     double radius = getAreaInTheScreen(mMap.getProjection().getVisibleRegion().latLngBounds);
-                    cameraDatabaseClient.initializeCameras(requestQueue, getApplicationContext(), mMap, curr_lat_lng, radius*1.5);
+                    LatLng location = mMap.getCameraPosition().target;
+                    cameraDatabaseClient.initializeCameras(requestQueue, getApplicationContext(), mMap, location, radius*1.5);
                     plotCameras = true;
                 }
                 else {
@@ -487,10 +487,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                LatLng location = mMap.getCameraPosition().target;
                if (plotCameras) {
                    double radius = getAreaInTheScreen(mMap.getProjection().getVisibleRegion().latLngBounds);
-                   cameraDatabaseClient.updateCameras(location, getApplicationContext(), mMap, requestQueue, radius*1.5);
+                   cameraDatabaseClient.updateCameras(location, getApplicationContext(), mMap, requestQueue, radius*1.2);
                }
            }
        });
+
+        mMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {
+            @Override
+            public void onMapLoaded() {
+                Log.d("Loaded haha", "check1");
+            }
+        });
 
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
