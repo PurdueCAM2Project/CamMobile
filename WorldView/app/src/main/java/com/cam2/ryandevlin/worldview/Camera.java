@@ -4,7 +4,6 @@ import java.io.Serializable;
 
 /**
  * Created by RyanDevlin on 12/10/17.
- * Updated by Rohith Ravindanath 10//05/18
  */
 
 public class Camera implements Serializable{
